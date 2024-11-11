@@ -1,26 +1,5 @@
 const mongoose = require("mongoose");
 
-// Define the Submitter Schema
-const SubmitterSchema = new mongoose.Schema({
-    studentId: {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: "User",
-        required: true
-    },
-    percentage: {
-        type: String,
-        required: true
-    },
-    marks: {
-        type: Number,
-        required: true
-    },
-    submittedAt: {
-        type: Date,
-        default: Date.now
-    }
-});
-
 // Define Assignment Schema
 const Assignment = mongoose.Schema(
     {
@@ -63,7 +42,7 @@ const Assignment = mongoose.Schema(
             required: true,
         },
         assignmentSubmitters: {
-            type: [SubmitterSchema],
+            type: [Object],
             default: [],
         },
         assignmentNonSubmitters: {

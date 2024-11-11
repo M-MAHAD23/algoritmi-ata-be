@@ -6,9 +6,13 @@ exports.createBatch = async (req, res) => {
     try {
         const batch = new Batch(req.body);
         await batch.save();
+
         // Populate references before sending the response
-        await batch.populate('teacher').populate('student').populate('assignment').execPopulate();
-        res.status(201).json({ success: true, data: batch });
+        const batches = await Batch.find()
+            .populate('batchTeacher')
+            .populate('batchStudent')
+            .populate('batchAssignment');
+        res.status(201).json({ success: true, data: batches });
     } catch (error) {
         res.status(400).json({ success: false, error: error.message });
     }
@@ -18,9 +22,9 @@ exports.createBatch = async (req, res) => {
 exports.getAllBatches = async (req, res) => {
     try {
         const batches = await Batch.find()
-            .populate('teacher')
-            .populate('student')
-            .populate('assignment');
+            .populate('batchTeacher')
+            .populate('batchStudent')
+            .populate('batchAssignment');
         res.status(200).json({ success: true, data: batches });
     } catch (error) {
         res.status(400).json({ success: false, error: error.message });
@@ -30,10 +34,7 @@ exports.getAllBatches = async (req, res) => {
 // Get a single Batch by ID
 exports.getBatchById = async (req, res) => {
     try {
-        const batch = await Batch.findById(req.params.id)
-            .populate('teacher')
-            .populate('student')
-            .populate('assignment');
+        const batch = await Batch.findById(req.params.id);
         if (!batch) {
             return res.status(404).json({ success: false, message: 'Batch not found' });
         }
@@ -46,14 +47,16 @@ exports.getBatchById = async (req, res) => {
 // Update a Batch by ID
 exports.updateBatch = async (req, res) => {
     try {
-        const batch = await Batch.findByIdAndUpdate(req.params.id, req.body, { new: true, runValidators: true })
-            .populate('teacher')
-            .populate('student')
-            .populate('assignment');
+        const { id, ...updateData } = req.body;
+        const batch = await Batch.findByIdAndUpdate(id, updateData, { new: true, runValidators: true })
+        const batches = await Batch.find()
+            .populate('batchTeacher')
+            .populate('batchStudent')
+            .populate('batchAssignment');
         if (!batch) {
             return res.status(404).json({ success: false, message: 'Batch not found' });
         }
-        res.status(200).json({ success: true, data: batch });
+        res.status(200).json({ success: true, data: batches });
     } catch (error) {
         res.status(400).json({ success: false, error: error.message });
     }
@@ -62,11 +65,15 @@ exports.updateBatch = async (req, res) => {
 // Delete a Batch by ID
 exports.deleteBatch = async (req, res) => {
     try {
-        const batch = await Batch.findByIdAndDelete(req.params.id);
+        const batch = await Batch.findByIdAndDelete(req.body.id);
         if (!batch) {
             return res.status(404).json({ success: false, message: 'Batch not found' });
         }
-        res.status(200).json({ success: true, data: null, message: 'Batch deleted successfully' });
+        const batches = await Batch.find()
+            .populate('batchTeacher')
+            .populate('batchStudent')
+            .populate('batchAssignment');
+        res.status(200).json({ success: true, data: batches, message: 'Batch deleted successfully' });
     } catch (error) {
         res.status(400).json({ success: false, error: error.message });
     }
@@ -81,13 +88,20 @@ exports.toggleBatchStatus = async (req, res) => {
         }
 
         // Toggle the isEnable status
-        const updatedBatch = await Batch.findByIdAndUpdate(
+        await Batch.findByIdAndUpdate(
             req.params.id,
             { isEnable: !batch.isEnable }, // Toggle the isEnable field
             { new: true } // Return the updated document
-        ).populate('teacher').populate('student').populate('assignment'); // Populate references
+        );
 
-        res.status(200).json({ success: true, data: updatedBatch });
+        // Populate references
+        const batches = await Batch.find()
+            .populate('batchTeacher')
+            .populate('batchStudent')
+            .populate('batchAssignment');
+
+        res.status(200).json({ success: true, data: batches });
+
     } catch (error) {
         res.status(400).json({ success: false, error: error.message });
     }

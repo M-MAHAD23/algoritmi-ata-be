@@ -6,7 +6,7 @@ const BatchController = require('../controllers/BatchController');
 router.post('/createBatch', BatchController.createBatch);
 
 // Get all Batches
-router.post('getAllBatches', BatchController.getAllBatches);
+router.post('/getAllBatches', BatchController.getAllBatches);
 
 // Get a Batch by ID
 router.post('/getBatchById', BatchController.getBatchById);
