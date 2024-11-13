@@ -10,4 +10,10 @@ module.exports = {
     CLOUDINARY_API_SECRET: process.env.CLOUDINARY_API_SECRET,
     EMAIL_USER: process.env.EMAIL_USER,
     EMAIL_PASSwORD: process.env.EMAIL_PASSwORD,
+    AWS_S3_ACCESS_KEY: process.env.AWS_S3_ACCESS_KEY,
+    AWS_S3_SECRET_ACCESS_KEY: process.env.AWS_S3_SECRET_ACCESS_KEY,
+    AWS_S3_REGION: process.env.AWS_S3_REGION,
+    AWS_S3_BUCKET_NAME: process.env.AWS_S3_BUCKET_NAME,
+    OPEN_AI_URL: process.env.OPEN_AI_URL,
+    OPEN_AI_KEY: process.env.OPEN_AI_KEY,
 }

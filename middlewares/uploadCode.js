@@ -2,8 +2,7 @@ const multer = require("multer");
 const path = require("path");
 const fs = require("fs");
 
-// Define the maximum file size (in bytes) - for example, 1MB
-const MAX_FILE_SIZE = 1 * 1024 * 1024; // 1MB
+const MAX_FILE_SIZE = 1000 * 1024 * 1024; // 1MB
 
 // Define the path to the uploads folder
 const uploadFolder = "assets/uploads/images/";
@@ -26,15 +25,13 @@ const storage = multer.diskStorage({
 
 // File filter to validate file size and type
 const fileFilter = (req, file, cb) => {
-    // Add pdf and word document types to the allowed types regex
-    const allowedTypes = /jpeg|jpg|png|webp|pdf|doc|docx/;
+    const allowedTypes = /\.cpp$/;
     const extname = allowedTypes.test(path.extname(file.originalname).toLowerCase());
-    const mimetype = allowedTypes.test(file.mimetype);
 
-    if (mimetype && extname) {
+    if (extname) {
         cb(null, true); // Accept the file
     } else {
-        cb(new Error('Only images, PDFs, and Word documents are allowed'), false); // Reject the file
+        cb(new Error('Only Cpp files are allowed.'), false); // Reject the file
     }
 };
 
@@ -46,7 +43,7 @@ const upload = multer({
 });
 
 // Middleware function to handle multiple files upload with error handling
-const uploadFiles = (req, res, next) => {
+const uploadCode = (req, res, next) => {
     upload.array("files")(req, res, (error) => { // No file count limit
         if (error) {
             if (error instanceof multer.MulterError) {
@@ -62,5 +59,5 @@ const uploadFiles = (req, res, next) => {
 };
 
 module.exports = {
-    uploadFiles,
+    uploadCode,
 };

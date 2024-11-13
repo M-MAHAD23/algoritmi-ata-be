@@ -3,16 +3,15 @@ const bcrypt = require("bcrypt");
 const controllerError = require("../utils/controllerError");
 const jwt = require("jsonwebtoken");
 const { SECRET_KEY } = require("../config/env");
-const BatchModel = require("../model/BatchModel");
+const { Batch } = require("../model/BatchModel");
 
 // Register User
 exports.register__controller = async (req, res, next) => {
   try {
     const { name, email, password } = req.body;
 
-    const userInfo = await UserModel.findOne({ email });
+    const userInfo = await UserModel.findOne({ email: email });
     const hash = await bcrypt.hash(password, 10);
-
 
     if (userInfo && !userInfo.isRegistered && userInfo.role === "Admin") {
       const userReg = await UserModel.findOneAndUpdate(
@@ -29,7 +28,7 @@ exports.register__controller = async (req, res, next) => {
       return res.status(201).json({ message: "Account registered.", data: { user: userInfo } });
     }
     if (userInfo && !userInfo.isRegistered && (userInfo.role === "Student" || userInfo.role === "Teacher")) {
-      const batch = await BatchModel.findById(userInfo.batchId);
+      const batch = await Batch.findById(userInfo.batchId);
       if (!batch || !batch.isEnable) {
         return res.status(400).json({
           errors: "The specified batch is not enabled or does not exist."
@@ -58,7 +57,7 @@ exports.login__controller = async (req, res, next) => {
     const userInfo = await (await UserModel.findOne({ email }));
 
     if (userInfo.role !== "Admin") {
-      const batch = await BatchModel.findById(userInfo.batchId);
+      const batch = await Batch.findById(userInfo.batchId);
       if (!batch || !batch.isEnable) {
         return res.status(400).json({
           errors: "The specified batch is not enabled or does not exist."

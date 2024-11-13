@@ -11,9 +11,9 @@ const loginValidator = require("../middlewares/loginValidator");
 
 const router = require("express").Router();
 
-router.post("/register", register__controller)
+router.post("/signup", register__controller)
 
-router.post("/login", loginValidator, login_validator, login__controller)
+router.post("/signin", loginValidator, login_validator, login__controller)
 
 router.post("/forgotPassword", forgotPassword)
 

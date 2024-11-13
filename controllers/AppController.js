@@ -1,19 +1,19 @@
 const fs = require('fs');
 const path = require('path');
 const { Batch } = require('../model/BatchModel');
-const { Assignment } = require('../model/AssignmentModel');
+const { Quiz } = require('../model/QuizModel');
 
-// Submit assignment
-exports.submitAssignment = async (req, res) => {
+// Submit Quiz
+exports.submitQuiz = async (req, res) => {
     try {
 
-        const { assignmentId, studentId } = req.body;
+        const { quizId, studentId } = req.body;
 
 
 
-        res.status(200).json({ message: 'Assignment Submitted successfully', data: assignment });
+        res.status(200).json({ message: 'Quiz Submitted successfully', data: quiz });
     } catch (error) {
-        res.status(500).json({ error: 'Error submitting assignment', details: error.message });
+        res.status(500).json({ error: 'Error submitting Quiz', details: error.message });
     }
 };
 
@@ -171,7 +171,7 @@ exports.prompt = async (req, res) => {
             ]
         }
 
-        const SYSTEM_MESSAGES = `Here is the course outline in JSON: ${{ course }}. Answer the "user" query according to the course given in JSON, Never give the code of program if they as but guide them acording to their query.`
+        const SYSTEM_MESSAGES = `Here is the course outline in JSON: ${{ course }}. Answer the "user" query according to the course given in JSON, Never give the code of program if they ask, but guide them acording to their query.`
 
         const response = await fetch(OPEN_AI_URL, {
             method: "POST",
@@ -187,8 +187,8 @@ exports.prompt = async (req, res) => {
                     { role: "user", content: [{ text: userMessage, type: "text" }] }
                 ],
                 temperature: 0,
-                max_tokens: 256,
-                top_p: 0.001,
+                max_tokens: 2048,
+                top_p: 1,
                 frequency_penalty: 0,
                 presence_penalty: 0
             })

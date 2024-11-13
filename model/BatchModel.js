@@ -25,9 +25,9 @@ const Batch = mongoose.Schema(
             ref: "User",
             default: [],
         },
-        batchAssignment: {
+        batchQuiz: {
             type: [mongoose.Schema.Types.ObjectId],
-            ref: "Assignment",
+            ref: "Quiz",
             default: [],
         },
         isEnable: { type: Boolean, default: true },
