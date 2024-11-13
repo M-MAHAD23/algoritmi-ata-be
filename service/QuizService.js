@@ -449,6 +449,46 @@ const postSubmissionTasks = async (submissionData) => {
     }
 };
 
+// Post Submission Student Quiz Analysis
+const analyzeStudentQuiz = async (submissionData) => {
+    const { quizId, s3Url, id } = submissionData;
+    try {
+
+        // Fetch all existing file contents for the quiz
+        const existingFileContents = await fetchFilesFromS3Folder(quizId, s3Url);
+
+        // Fetch the content of the new file
+        const newFileContent = await fetchFileFromS3(s3Url);
+
+        // 1. Text Similarity Check
+        const textMatched = await calculateTextSimilarity(newFileContent, existingFileContents);
+
+        // 2. Syntax Similarity Check
+        const syntaxMatched = await calculateSyntaxSimilarity(newFileContent, existingFileContents);
+
+        // 3. Logic Similarity Check
+        const logicMatched = await calculateLogicSimilarity(newFileContent, existingFileContents);
+
+        // 4. Ethics
+        const ethics = await checkCodeIntegrity(newFileContent);
+
+
+        // 5. Copied from AI Check
+        // const copiedFromAI = await checkForAICopy(newFileContent);
+
+        // // Update the submission with plagiarism results
+        await QuizSubmitter.updateOne(
+            { _id: id },
+            { $set: { textMatched, syntaxMatched, logicMatched, ethics } }
+        );
+
+        return "true";
+    } catch (error) {
+        console.error("Error performing post-submission tasks:", error.message);
+        throw error;
+    }
+};
+
 module.exports = {
     fetchFilesFromS3Folder,
     fetchFileFromS3,
@@ -456,4 +496,5 @@ module.exports = {
     calculateSyntaxSimilarity,
     calculateLogicSimilarity,
     postSubmissionTasks,
+    analyzeStudentQuiz,
 }

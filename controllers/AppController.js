@@ -47,7 +47,7 @@ exports.ataConfig = async (req, res) => {
 };
 
 // Prompt
-exports.prompt = async (req, res) => {
+exports.prompt = async (chat) => {
     try {
         const course = {
             "courseTitle": "Programming Fundamentals",

@@ -12,13 +12,22 @@ const Chat = mongoose.Schema(
             ref: "User",
             default: [],
         },
-        chat: {
-            type: [Object],
-            default: [],
-        },
+        chat: [
+            {
+                role: {
+                    type: String,
+                    required: true,
+                    enum: ["User", "Model"]
+                },
+                message: {
+                    type: String,
+                    required: true
+                }
+            }
+        ],
         isEnable: { type: Boolean, default: true },
-        deletedAt: { type: String, default: null },
         isActive: { type: Boolean, default: true },
+        deletedAt: { type: String, default: null },
     },
     {
         timestamps: true,

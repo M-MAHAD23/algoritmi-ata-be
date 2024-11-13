@@ -7,7 +7,7 @@ const { Batch } = require("../model/BatchModel");
 const { QuizHint } = require("../model/QuizHintModel");
 const { QuizSubmitter } = require("../model/QuizSubmitterModel");
 const { AWS_S3_ACCESS_KEY, AWS_S3_SECRET_ACCESS_KEY, AWS_REGION, AWS_S3_BUCKET_NAME, OPEN_AI_URL, OPEN_AI_KEY } = require("../config/env");
-const { postSubmissionTasks } = require("../service/QuizService");
+const { postSubmissionTasks, analyzeStudentQuiz } = require("../service/QuizService");
 
 // Setup AWS S3
 const s3 = new AWS.S3({
@@ -52,7 +52,14 @@ exports.createQuiz = async (req, res) => {
                 { path: 'quizNonSubmitters' },
                 { path: 'quizHint' },
                 { path: 'quizSubmitters.studentId' },
-                { path: 'quizSubmitters.submissionId' }
+                {
+                    path: 'quizSubmitters.submissionId',
+                    populate: [
+                        { path: 'textMatched.studentId' },
+                        { path: 'syntaxMatched.studentId' },
+                        { path: 'logicMatched.studentId' }
+                    ]
+                }
             ]);
 
         return res.status(201).json({ message: "Quiz created successfully", data: quizes });
@@ -93,7 +100,20 @@ exports.getAllQuizzes = async (req, res) => {
 // Get a single quiz by ID
 exports.getQuizById = async (req, res) => {
     try {
-        const quiz = await Quiz.findById(req.body.id).populate("batchId assignerId quizNonSubmitters");
+        const quiz = await Quiz.findById(req.body.id)
+            .populate([
+                { path: 'quizNonSubmitters' },
+                { path: 'quizHint' },
+                { path: 'quizSubmitters.studentId' },
+                {
+                    path: 'quizSubmitters.submissionId',
+                    populate: [
+                        { path: 'textMatched.studentId' },
+                        { path: 'syntaxMatched.studentId' },
+                        { path: 'logicMatched.studentId' }
+                    ]
+                }
+            ]);
 
         if (!quiz) {
             return res.status(404).json({ message: "Quiz not found" });
@@ -124,7 +144,14 @@ exports.updateQuiz = async (req, res) => {
                 { path: 'quizNonSubmitters' },
                 { path: 'quizHint' },
                 { path: 'quizSubmitters.studentId' },
-                { path: 'quizSubmitters.submissionId' }
+                {
+                    path: 'quizSubmitters.submissionId',
+                    populate: [
+                        { path: 'textMatched.studentId' },
+                        { path: 'syntaxMatched.studentId' },
+                        { path: 'logicMatched.studentId' }
+                    ]
+                }
             ]);
 
         return res.status(200).json({ message: "Quiz found successfully", data: quizes });
@@ -152,7 +179,14 @@ exports.deleteQuiz = async (req, res) => {
                 { path: 'quizNonSubmitters' },
                 { path: 'quizHint' },
                 { path: 'quizSubmitters.studentId' },
-                { path: 'quizSubmitters.submissionId' }
+                {
+                    path: 'quizSubmitters.submissionId',
+                    populate: [
+                        { path: 'textMatched.studentId' },
+                        { path: 'syntaxMatched.studentId' },
+                        { path: 'logicMatched.studentId' }
+                    ]
+                }
             ]);
 
         return res.status(200).json({ message: "Quiz found successfully", data: quizes });
@@ -213,22 +247,22 @@ exports.submitQuiz = async (req, res) => {
         });
         await newQuizSubmitter.save();
 
-        // await Quiz.updateOne(
-        //     { _id: quizId },
-        //     {
-        //         $addToSet: {
-        //             quizSubmitters: {
-        //                 studentId: submitterId,
-        //                 submissionId: newQuizSubmitter._id,
-        //             }
-        //         }
-        //     }
-        // );
+        await Quiz.updateOne(
+            { _id: quizId },
+            {
+                $addToSet: {
+                    quizSubmitters: {
+                        studentId: submitterId,
+                        submissionId: newQuizSubmitter._id,
+                    }
+                }
+            }
+        );
 
-        // await Quiz.updateOne(
-        //     { _id: quizId },
-        //     { $pull: { quizNonSubmitters: submitterId } }
-        // );
+        await Quiz.updateOne(
+            { _id: quizId },
+            { $pull: { quizNonSubmitters: submitterId } }
+        );
 
         res.status(201).json({ message: 'Quiz submitted successfully', newQuizSubmitter });
         // Call function after response
@@ -415,3 +449,45 @@ exports.deleteQuizHint = async (req, res) => {
         res.status(500).json({ message: "Error deleting quiz hint." });
     }
 };
+
+// Post Submission Student Quiz Analysis
+exports.analyzeQuiz = async (req, res) => {
+    try {
+        const { batchId, quizId, s3Url, id } = req.body;
+
+        const submissionData = {
+            quizId: quizId,
+            s3Url: s3Url,
+            id: id
+        }
+
+        const analyzeQuiz = await analyzeStudentQuiz(submissionData);
+        if (analyzeQuiz !== "true") res.status(400).json({ message: "Could not analyze the submitted quiz.", data: null });
+
+        console.log("Post submission student quiz analysis performed successfully.");
+
+        const quizes = await Quiz.find({
+            batchId: batchId,
+            isActive: true
+        })
+            .populate([
+                { path: 'quizNonSubmitters' },
+                { path: 'quizHint' },
+                { path: 'quizSubmitters.studentId' },
+                {
+                    path: 'quizSubmitters.submissionId',
+                    populate: [
+                        { path: 'textMatched.studentId' },
+                        { path: 'syntaxMatched.studentId' },
+                        { path: 'logicMatched.studentId' }
+                    ]
+                }
+            ]);
+
+        res.status(200).json({ message: "Submission analyzed successfully.", data: quizes });
+
+    } catch (error) {
+        console.error(error.message);
+        res.status(500).json({ message: "Error Analyzing quiz." });
+    }
+}
