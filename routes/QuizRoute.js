@@ -34,4 +34,7 @@ router.post("/updateQuizHint", uploadFiles, QuizController.updateQuizHint);
 // Route to delete a QuizHint by ID
 router.post("/deleteQuizHint", QuizController.deleteQuizHint);
 
+// Route to analyze
+router.post("/analyzeQuiz", QuizController.analyzeQuiz);
+
 module.exports = router;
