@@ -6,10 +6,9 @@ const { prompt } = require('../service/AiService');
 // Create a new chat
 exports.createChat = async (req, res) => {
     try {
-        const { chatName, chatOwner, chat } = req.body;
-        const newChat = await Chat.create({ chatName, chatOwner, chat });
+        const { batchId, chatName, chatOwner, chat } = req.body;
+        const newChat = await Chat.create({ batchId, chatName, chatOwner, chat });
         const liveChat = await prompt(chat);
-        console.log(liveChat);
         const updatedChat = await Chat.findOneAndUpdate(
             {
                 _id: newChat._id

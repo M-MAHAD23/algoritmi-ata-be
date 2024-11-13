@@ -3,6 +3,11 @@ const mongoose = require("mongoose");
 // Define Chat Schema
 const Chat = mongoose.Schema(
     {
+        batchId: {
+            type: mongoose.Schema.Types.ObjectId,
+            ref: "Batch",
+            required: true
+        },
         chatName: {
             type: String,
             required: true,

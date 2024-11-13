@@ -61,8 +61,8 @@ const userSchema = mongoose.Schema({
         default: false
     },
     isRegistered: { type: Boolean, default: false },
-    deletedAt: { type: String, default: null },
     isActive: { type: Boolean, default: true },
+    deletedAt: { type: String, default: null },
 }, { timestamps: true })
 
 const UserModel = mongoose.model("User", userSchema)
