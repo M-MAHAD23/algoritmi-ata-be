@@ -73,6 +73,33 @@ exports.createQuiz = async (req, res) => {
 exports.getAllQuizzes = async (req, res) => {
     try {
         const quizes = await Quiz.find({
+            isActive: true
+        })
+            .populate([
+                { path: 'quizNonSubmitters' },
+                { path: 'quizHint' },
+                { path: 'quizSubmitters.studentId' },
+                {
+                    path: 'quizSubmitters.submissionId',
+                    populate: [
+                        { path: 'textMatched.studentId' },
+                        { path: 'syntaxMatched.studentId' },
+                        { path: 'logicMatched.studentId' }
+                    ]
+                }
+            ]);
+
+        return res.status(200).json({ message: "Quiz found successfully", data: quizes });
+    } catch (error) {
+        console.error(error);
+        return res.status(500).json({ message: "Server Error" });
+    }
+};
+
+// Get all quizzes
+exports.getAllQuizzesByBatchId = async (req, res) => {
+    try {
+        const quizes = await Quiz.find({
             batchId: req.body.batchId,
             isActive: true
         })
@@ -363,7 +390,7 @@ exports.updateQuizHint = async (req, res) => {
         if (req.files && req.files[0]) {
             const file = req.files[0];
             const folderName = quizHint.quizId.toString(); // Folder named after quizId
-            const fileName = path.basename(file.path);; // Using timestamp for unique name
+            const fileName = path.basename(file.path); // Using timestamp for unique name
             const filePath = path.isAbsolute(file.path) ? file.path : path.join(__dirname, "../assets/uploads/images", path.basename(file.path)); // Path of the temporary file
 
             // Delete the old file from S3 if it exists
