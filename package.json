@@ -9,11 +9,9 @@
     "test": "jest",
     "test:watch": "jest --watch",
     "test:coverage": "jest --coverage",
-    "prestart:prod": "npm run lint && npm run test",
     "start:prod": "node server.js",
     "clean": "rm -rf coverage",
-    "format": "prettier --write .",
-    "postinstall": "npm run lint"
+    "format": "prettier --write ."
   },
   "keywords": [],
   "author": "",
