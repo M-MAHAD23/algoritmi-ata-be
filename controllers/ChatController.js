@@ -6,9 +6,10 @@ const { prompt } = require('../service/AiService');
 // Create a new chat
 exports.createChat = async (req, res) => {
     try {
-        const { batchId, chatName, chatOwner, chat } = req.body;
-        const newChat = await Chat.create({ batchId, chatName, chatOwner, chat });
-        const liveChat = await prompt(chat);
+        const { batchId, chatName, chatOwner, message } = req.body;
+        const newChat = await Chat.create({ batchId, chatName, chatOwner });
+        if (!message) return res.status(201).json({ data: newChat });
+        const liveChat = await prompt(message);
         const updatedChat = await Chat.findOneAndUpdate(
             {
                 _id: newChat._id
@@ -20,7 +21,7 @@ exports.createChat = async (req, res) => {
                 new: true
             }
         );
-        res.status(201).json(updatedChat);
+        return res.status(201).json(updatedChat);
     } catch (error) {
         res.status(500).json({ message: "Error creating chat", error });
     }
@@ -62,7 +63,14 @@ exports.getChatById = async (req, res) => {
 // Update a chat by ID
 exports.updateChatById = async (req, res) => {
     try {
-        const { id, message, chatName } = req.body;
+        let { id, message, chatName, batchId, chatOwner } = req.body;
+
+        let newChat = null;
+        if (id === null) {
+            newChat = await Chat.create({ batchId, chatName, chatOwner });
+            if (!id) id = newChat._id;
+        }
+
         if (chatName) {
             await Chat.findByIdAndUpdate(
                 id,
@@ -72,8 +80,8 @@ exports.updateChatById = async (req, res) => {
                 { new: true }
             );
         }
-        const updatedChat = await Chat.findByIdAndUpdate(
-            id,
+        const updatedChat = await Chat.findOneAndUpdate(
+            { _id: id },
             {
                 $push: { chat: message[0] },
             },

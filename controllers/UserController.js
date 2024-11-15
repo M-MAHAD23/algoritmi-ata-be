@@ -8,8 +8,16 @@ const { Quiz } = require("../model/QuizModel");
 const { Batch } = require("../model/BatchModel");
 const { QuizHint } = require("../model/QuizHintModel");
 const { QuizSubmitter } = require("../model/QuizSubmitterModel");
-const { AWS_S3_ACCESS_KEY, AWS_S3_SECRET_ACCESS_KEY, AWS_REGION, AWS_S3_BUCKET_NAME, OPEN_AI_URL, OPEN_AI_KEY } = require("../config/env");
-const { postSubmissionTasks, analyzeStudentQuiz } = require("../service/QuizService");
+const { AWS_S3_ACCESS_KEY, AWS_S3_SECRET_ACCESS_KEY, AWS_REGION, AWS_S3_BUCKET_NAME, OPEN_AI_URL, OPEN_AI_KEY, SECRET_KEY } = require("../config/env");
+const bcrypt = require("bcrypt");
+const { Notification } = require('../model/NotificationModel');
+
+// Setup AWS S3
+const s3 = new AWS.S3({
+    accessKeyId: AWS_S3_ACCESS_KEY,
+    secretAccessKey: AWS_S3_SECRET_ACCESS_KEY,
+    region: AWS_REGION,
+});
 
 exports.getStudent__controller = async (req, res, next) => {
     try {
@@ -59,8 +67,60 @@ exports.deleteTeacher__controller = async (req, res, next) => {
 // Create a new user
 exports.createUser = async (req, res) => {
     try {
+
+        const alreadyExist = await User.findOne({ email: req.body.email });
+        if (alreadyExist) return res.status(403).json({ message: "Email Already Exists." });
+
+        // Hash the password
+        const saltRounds = 10;
+        const hashedPassword = await bcrypt.hash(req.body.password, saltRounds);
+
+        // Replace password in the request body with hashed password
+        req.body.password = hashedPassword;
+
+        // Handle file upload to S3 if present
+        if (req.files && req.files[0]) {
+            const file = req.files[0];
+            const params = {
+                Bucket: process.env.S3_BUCKET_NAME, // Your S3 bucket name
+                Key: `uploads/${Date.now()}_${file.originalname}`, // Unique file name in the bucket
+                Body: file.buffer,
+                ContentType: file.mimetype
+            };
+
+            // Upload file to S3
+            const uploadResult = await s3.upload(params).promise();
+
+            // Store the file URL in the user data
+            req.body.image = uploadResult.Location;
+        }
+
+        // Create and save the new user
         const newUser = new User(req.body);
         await newUser.save();
+
+        if (newUser.role === "Teacher") {
+            await Batch.findOneAndUpdate(
+                {
+                    _id: req.body.batchId
+                },
+                {
+                    $addToSet: { batchTeacher: newUser._id }
+                }
+            );
+        }
+
+        if (newUser.role === "Student") {
+            await Batch.findOneAndUpdate(
+                {
+                    _id: req.body.batchId
+                },
+                {
+                    $addToSet: { batchStudent: newUser._id }
+                }
+            );
+        }
+
         res.status(201).json({ success: true, data: newUser });
     } catch (error) {
         res.status(500).json({ success: false, error: error.message });
@@ -171,5 +231,26 @@ exports.deleteUser = async (req, res) => {
         res.status(200).json({ success: true, data: deletedUser });
     } catch (error) {
         res.status(500).json({ success: false, error: error.message });
+    }
+};
+
+// Delete (soft delete) a user by ID
+exports.updateNotifications = async (req, res) => {
+    try {
+        await Notification.findOneAndUpdate({ _id: req.body.id }, { isSeen: true }).exec();
+        const unseenNotifications = await Notification.find({ userId: req.body.userId, isSeen: false });
+        res.status(200).json({ message: "Success", data: unseenNotifications });
+    } catch (error) {
+        res.status(500).json({ error: "Failed to retrieve unseen notifications" });
+    }
+};
+
+// Delete (soft delete) a user by ID
+exports.notifications = async (req, res) => {
+    try {
+        const unseenNotifications = await Notification.find({ userId: req.body.userId, isSeen: false });
+        res.status(200).json({ message: "Success", data: unseenNotifications });
+    } catch (error) {
+        res.status(500).json({ error: "Failed to retrieve unseen notifications" });
     }
 };

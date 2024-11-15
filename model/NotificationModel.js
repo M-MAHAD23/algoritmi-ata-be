@@ -10,6 +10,11 @@ const Notification = mongoose.Schema(
         },
         userId: {
             type: mongoose.Schema.Types.ObjectId,
+            ref: "User",
+            required: true
+        },
+        quizId: {
+            type: mongoose.Schema.Types.ObjectId,
             ref: "Quiz",
             required: true
         },
@@ -17,7 +22,7 @@ const Notification = mongoose.Schema(
             type: String,
             required: true,
         },
-        isSeen: { type: Boolean, default: true },
+        isSeen: { type: Boolean, default: false },
         isActive: { type: Boolean, default: true },
         deletedAt: { type: String, default: null },
     },

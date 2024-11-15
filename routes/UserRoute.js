@@ -47,4 +47,10 @@ router.post('/updateUser', uploadFiles, UserController.updateUser);
 // Delete (soft delete) a user by ID
 router.post('/deleteUser', UserController.deleteUser);
 
+// Update a user by ID
+router.post('/updateNotifications', UserController.updateNotifications);
+
+// Delete (soft delete) a user by ID
+router.post('/notifications', UserController.notifications);
+
 module.exports = router;

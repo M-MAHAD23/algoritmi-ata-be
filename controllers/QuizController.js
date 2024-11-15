@@ -8,6 +8,7 @@ const { QuizHint } = require("../model/QuizHintModel");
 const { QuizSubmitter } = require("../model/QuizSubmitterModel");
 const { AWS_S3_ACCESS_KEY, AWS_S3_SECRET_ACCESS_KEY, AWS_REGION, AWS_S3_BUCKET_NAME, OPEN_AI_URL, OPEN_AI_KEY } = require("../config/env");
 const { postSubmissionTasks, analyzeStudentQuiz } = require("../service/QuizService");
+const { Notification } = require("../model/NotificationModel");
 
 // Setup AWS S3
 const s3 = new AWS.S3({
@@ -488,6 +489,12 @@ exports.analyzeQuiz = async (req, res) => {
             id: id
         }
 
+        const quizSubmitter = await QuizSubmitter.findOne(
+            {
+                _id: id
+            }
+        );
+
         const analyzeQuiz = await analyzeStudentQuiz(submissionData);
         if (analyzeQuiz !== "true") res.status(400).json({ message: "Could not analyze the submitted quiz.", data: null });
 
@@ -510,6 +517,15 @@ exports.analyzeQuiz = async (req, res) => {
                     ]
                 }
             ]);
+
+        const newNotification = new Notification({
+            batchId,
+            userId: quizSubmitter.submitterId,
+            quizId,
+            message: "Your quiz analyzed.",
+        });
+
+        await newNotification.save();
 
         res.status(200).json({ message: "Submission analyzed successfully.", data: quizes });
 

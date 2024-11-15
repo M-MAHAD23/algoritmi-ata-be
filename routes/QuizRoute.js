@@ -11,7 +11,7 @@ router.post("/createQuiz", QuizController.createQuiz);
 router.post("/getAllQuizzes", QuizController.getAllQuizzes);
 
 // Route to get all quizzes
-router.post("/getAllQuizzes", QuizController.getAllQuizzesByBatchId);
+router.post("/getAllQuizzesByBatchId", QuizController.getAllQuizzesByBatchId);
 
 // Route to get a quiz by ID
 router.post("/getQuizById", QuizController.getQuizById);

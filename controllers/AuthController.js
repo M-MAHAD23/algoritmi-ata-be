@@ -55,6 +55,7 @@ exports.login__controller = async (req, res, next) => {
     const { email, password } = req.body;
 
     const userInfo = await (await UserModel.findOne({ email }));
+    if (!userInfo) return res.status(404).json({ message: "No Such User", data: null });
 
     if (userInfo.role !== "Admin") {
       const batch = await Batch.findById(userInfo.batchId);
