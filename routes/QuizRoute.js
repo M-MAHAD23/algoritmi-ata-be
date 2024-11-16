@@ -40,4 +40,10 @@ router.post("/deleteQuizHint", QuizController.deleteQuizHint);
 // Route to analyze
 router.post("/analyzeQuiz", QuizController.analyzeQuiz);
 
+// Route to get all quizzes student
+router.post("/getAllQuizzesByBatchIdStudent", QuizController.getAllQuizzesByBatchIdStudent);
+
+// Route to get student details
+router.post("/submissionDetailsStudent", QuizController.submissionDetailsStudent);
+
 module.exports = router;

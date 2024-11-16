@@ -479,7 +479,7 @@ const analyzeStudentQuiz = async (submissionData) => {
         // // Update the submission with plagiarism results
         await QuizSubmitter.updateOne(
             { _id: id },
-            { $set: { textMatched, syntaxMatched, logicMatched, ethics } }
+            { $set: { textMatched, syntaxMatched, logicMatched, ethics, analyzed: true } }
         );
 
         return "true";

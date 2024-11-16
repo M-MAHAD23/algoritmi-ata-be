@@ -65,6 +65,14 @@ const QuizSubmitter = mongoose.Schema(
             type: String,
             default: "",
         },
+        analyzed: {
+            type: Boolean,
+            default: false,
+        },
+        reviews: {
+            type: String,
+            default: "",
+        },
         copiedFromAI: {
             type: Number,
             default: 0,

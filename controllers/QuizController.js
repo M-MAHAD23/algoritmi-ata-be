@@ -294,7 +294,7 @@ exports.submitQuiz = async (req, res) => {
 
         res.status(201).json({ message: 'Quiz submitted successfully', newQuizSubmitter });
         // Call function after response
-        await postSubmissionTasks(newQuizSubmitter);
+        // await postSubmissionTasks(newQuizSubmitter);
     } catch (error) {
         console.error(error);
         res.status(500).json({ message: 'Server Error' });
@@ -532,5 +532,97 @@ exports.analyzeQuiz = async (req, res) => {
     } catch (error) {
         console.error(error.message);
         res.status(500).json({ message: "Error Analyzing quiz." });
+    }
+}
+
+// Student
+exports.getAllQuizzesByBatchIdStudent = async (req, res) => {
+    try {
+        // Fetch all submissions for the batch and student
+        const submissions = await QuizSubmitter.find({
+            batchId: req.body.batchId,
+            submitterId: req.body.studentId, // Assuming studentId is passed in the request body
+            isActive: true
+        }).select("quizId analyzed"); // Fetch quizId and analyzed to optimize the query
+
+        // Map quiz IDs to their analyzed status
+        const submittedQuizMap = submissions.reduce((map, submission) => {
+            map[submission.quizId.toString()] = { analyzed: submission.analyzed };
+            return map;
+        }, {});
+
+        // Fetch all quizzes for the batch
+        const quizzes = await Quiz.find({
+            batchId: req.body.batchId,
+            isActive: true
+        })
+            .populate([
+                { path: "quizNonSubmitters" },
+                { path: "quizHint" },
+                { path: "quizSubmitters.studentId" },
+                {
+                    path: "quizSubmitters.submissionId",
+                    populate: [
+                        { path: "textMatched.studentId" },
+                        { path: "syntaxMatched.studentId" },
+                        { path: "logicMatched.studentId" }
+                    ]
+                }
+            ]);
+
+        // Get the current date
+        const currentDate = new Date();
+
+        // Categorize quizzes
+        const newQuizzes = quizzes.filter(
+            quiz => new Date(quiz.quizDead) > currentDate && !submittedQuizMap[quiz._id.toString()]
+        );
+        const lateQuizzes = quizzes.filter(
+            quiz => new Date(quiz.quizDead) <= currentDate && !submittedQuizMap[quiz._id.toString()]
+        );
+        const submittedQuizzes = quizzes
+            .filter(quiz => submittedQuizMap[quiz._id.toString()])
+            .map(quiz => ({
+                ...quiz.toObject(),
+                analyzed: submittedQuizMap[quiz._id.toString()].analyzed
+            }));
+
+        return res.status(200).json({
+            message: "Quizzes categorized successfully",
+            data: {
+                newQuizzes,
+                lateQuizzes,
+                submittedQuizzes
+            }
+        });
+    } catch (error) {
+        console.error(error);
+        return res.status(500).json({ message: "Server Error" });
+    }
+};
+
+exports.submissionDetailsStudent = async (req, res) => {
+    try {
+        const { quizId, submitterId } = req.body;
+
+        const submission = await QuizSubmitter.findOne(
+            {
+                quizId: quizId,
+                submitterId: submitterId
+            }
+        )
+            .populate([
+                { path: 'submitterId' },
+                { path: 'textMatched.studentId' },
+                { path: 'syntaxMatched.studentId' },
+                { path: 'logicMatched.studentId' }
+            ])
+
+
+        return res.status(200).json({ message: "Submission Found.", data: submission })
+
+    } catch (error) {
+        console.error(error);
+        return res.status(500).json({ message: "Server Error" });
     }
 }
