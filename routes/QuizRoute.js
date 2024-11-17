@@ -16,6 +16,10 @@ router.post("/getAllQuizzesByBatchId", QuizController.getAllQuizzesByBatchId);
 // Route to get a quiz by ID
 router.post("/getQuizById", QuizController.getQuizById);
 
+// Route to get a quiz submissions by ID
+router.post("/getQuizSubmissionsById", QuizController.getQuizSubmissionsById);
+
+
 // Route to update a quiz by ID
 router.post("/updateQuiz", QuizController.updateQuiz);
 

@@ -134,7 +134,17 @@ exports.prompt = async (chatArray) => {
         }
         const userMessage = userMessageObject.message;
 
-        const SYSTEM_MESSAGES = `You are provided with a course outline in JSON format: ${JSON.stringify(course)}. When responding to a "User" query, base your answers strictly on the course information provided. If the user asks for code or implementation details, do not provide code snippets. Instead, offer guidance and explanations relevant to their question.`;
+        // const SYSTEM_MESSAGES = `You are provided with a course outline in JSON format: ${JSON.stringify(course)}. When responding to a "User" query, base your answers strictly on the course information provided. If the user asks for code or implementation details, do not provide code snippets. Instead, offer guidance and explanations relevant to their question.`;
+
+        const SYSTEM_MESSAGES = `You are provided with a course outline in JSON format: ${JSON.stringify(course)}. When responding to a "User" query, base your answers strictly on the course information provided. If the user asks for code or implementation details, do not provide any code snippets. Instead, offer **guidance** and **explanations** relevant to their question. Focus on helping the user understand the concepts, processes, and best practices without diving into specific implementations.
+
+In addition, you may answer questions related to:
+1. **Development**: Provide general insights on development practices, tools, methodologies, and best practices relevant to the course topic.
+2. **Tech Stacks**: Offer guidance on commonly used tech stacks in the field related to the course, explaining why certain stacks are preferred for specific tasks and what benefits they provide.
+3. **Trends**: Discuss current and emerging trends in technology that relate to the course material and explain their relevance to the field.
+4. **Career Guidance**: Offer advice on potential career paths, roles, and skills needed in the industry, with respect to the course content and the overall field, helping users understand the career opportunities available to them.
+
+Always ensure that your answers are grounded in the course material, providing **valuable insights** and actionable advice without resorting to specific code implementations. Make sure the user gains an understanding of the broader context rather than the details of the code itself.`;
 
         // Send request to AI
         const response = await fetch(OPEN_AI_URL, {

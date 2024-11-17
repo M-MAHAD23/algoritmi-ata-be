@@ -8,40 +8,46 @@ const { Batch } = require("../model/BatchModel");
 // Register User
 exports.register__controller = async (req, res, next) => {
   try {
-    const { name, email, password } = req.body;
+    const { rollId, email, password } = req.body;
 
-    const userInfo = await UserModel.findOne({ email: email });
+    let userInfo = await UserModel.findOne({ email: email, rollId: rollId });
+    if (!userInfo) return res.status(404).json({ message: "No Such User", data: null });
+    if (userInfo?.isRegistered) return res.status(403).json({ message: "Account Already Exists." });
+
     const hash = await bcrypt.hash(password, 10);
 
-    if (userInfo && !userInfo.isRegistered && userInfo.role === "Admin") {
+    if (userInfo && !userInfo?.isRegistered && userInfo?.role === "Admin") {
       const userReg = await UserModel.findOneAndUpdate(
         {
           email: email
         },
         {
-          name: name,
+          rollId: rollId,
           password: hash,
           isRegistered: true,
         }
       )
       if (!userReg) return res.status(500).json({ message: `User cannot be registered.` });
-      return res.status(201).json({ message: "Account registered.", data: { user: userInfo } });
     }
-    if (userInfo && !userInfo.isRegistered && (userInfo.role === "Student" || userInfo.role === "Teacher")) {
-      const batch = await Batch.findById(userInfo.batchId);
+    if (userInfo && !userInfo?.isRegistered && (userInfo?.role === "Student" || userInfo?.role === "Teacher")) {
+      const batch = await Batch.findById(userInfo?.batchId);
       if (!batch || !batch.isEnable) {
         return res.status(400).json({
           errors: "The specified batch is not enabled or does not exist."
         });
       }
-      userInfo.name = name;
+      userInfo.rollId = rollId;
       userInfo.password = hash;
-      isRegistered = true,
+      userInfo.isRegistered = true,
         await userInfo.save();
-      return res.status(201).json({ message: "Account registered.", data: { user: userInfo } });
     }
+    userInfo = await UserModel.findOne({ email: email, rollId: rollId });
 
-    return res.status(404).json({ message: "No account found.", data: null });
+    const token = jwt.sign({ _id: userInfo._id, name: userInfo.userName, email: userInfo.email, role: userInfo.role }, SECRET_KEY);
+    return res.status(200).json({
+      userInfo,
+      token,
+    });
 
   } catch (error) {
     console.log(`Internal Server Error: ${error.message}`);

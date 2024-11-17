@@ -154,6 +154,35 @@ exports.getQuizById = async (req, res) => {
     }
 };
 
+// Get a single quiz by ID
+exports.getQuizSubmissionsById = async (req, res) => {
+    try {
+        const { quizId } = req.body;
+
+        console.log(quizId);
+
+        const quizSubmissions = await QuizSubmitter.find(
+            {
+                quizId: quizId,
+            }
+        ).populate([
+            { path: 'quizId' },
+            { path: 'submitterId' },
+            { path: 'textMatched.studentId' },
+            { path: 'syntaxMatched.studentId' },
+            { path: 'logicMatched.studentId' }
+        ])
+        if (!quizSubmissions) {
+            return res.status(404).json({ message: "Submissions not found" });
+        }
+
+        return res.status(200).json({ message: "Quiz submissions found successfully", data: quizSubmissions });
+    } catch (error) {
+        console.error(error);
+        return res.status(500).json({ message: "Server Error" });
+    }
+};
+
 // Update a quiz by ID
 exports.updateQuiz = async (req, res) => {
     try {
@@ -481,17 +510,17 @@ exports.deleteQuizHint = async (req, res) => {
 // Post Submission Student Quiz Analysis
 exports.analyzeQuiz = async (req, res) => {
     try {
-        const { batchId, quizId, s3Url, id } = req.body;
+        const { batchId, quizId, s3Url, _id } = req.body.submission;
 
         const submissionData = {
             quizId: quizId,
             s3Url: s3Url,
-            id: id
+            id: _id,
         }
 
         const quizSubmitter = await QuizSubmitter.findOne(
             {
-                _id: id
+                _id: _id
             }
         );
 

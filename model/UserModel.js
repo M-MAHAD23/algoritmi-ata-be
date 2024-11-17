@@ -24,7 +24,7 @@ const userSchema = mongoose.Schema({
         type: String,
         default: ""
     },
-    id: {
+    rollId: {
         type: String,
         required: true
     },

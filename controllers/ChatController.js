@@ -50,7 +50,7 @@ exports.getAllChatsByUserId = async (req, res) => {
 // Get a single chat by ID
 exports.getChatById = async (req, res) => {
     try {
-        const chat = await Chat.findById(req.body.id);
+        const chat = await Chat.findById(req.body.chatId);
         if (!chat || !chat.isActive) {
             return res.status(404).json({ message: "Chat not found" });
         }

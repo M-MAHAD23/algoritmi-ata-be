@@ -1,5 +1,6 @@
 // controllers/batchController.js
 const { Batch } = require('../model/BatchModel'); // Adjust the path as needed
+const UserModel = require('../model/UserModel');
 
 // Create a new Batch
 exports.createBatch = async (req, res) => {
@@ -21,10 +22,22 @@ exports.createBatch = async (req, res) => {
 // Get all Batches
 exports.getAllBatches = async (req, res) => {
     try {
-        const batches = await Batch.find()
-            .populate('batchTeacher')
-            .populate('batchStudent')
-            .populate('batchQuiz');
+
+        const { userId } = req.body;
+
+        if (userId) {
+            batches = await Batch.find({ batchTeacher: { $in: [userId] } })
+                .populate("batchTeacher")
+                .populate("batchStudent")
+                .populate("batchQuiz");
+        }
+        else {
+            batches = await Batch.find()
+                .populate('batchTeacher')
+                .populate('batchStudent')
+                .populate('batchQuiz');
+        }
+
         res.status(200).json({ success: true, data: batches });
     } catch (error) {
         res.status(400).json({ success: false, error: error.message });
@@ -34,7 +47,16 @@ exports.getAllBatches = async (req, res) => {
 // Get a single Batch by ID
 exports.getBatchById = async (req, res) => {
     try {
-        const batch = await Batch.findById(req.params.id);
+        const { batchId } = req.body;
+
+        const batch = await Batch.find(
+            {
+                _id: batchId,
+            }
+        )
+            .populate('batchTeacher')
+            .populate('batchStudent')
+            .populate('batchQuiz');
         if (!batch) {
             return res.status(404).json({ success: false, message: 'Batch not found' });
         }

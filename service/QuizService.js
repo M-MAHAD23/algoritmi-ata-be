@@ -19,7 +19,8 @@ const s3 = new AWS.S3({
 const fetchFilesFromS3Folder = async (quizId, currentFileUrl) => {
     try {
         const folderPath = `ata/${quizId}/`;
-        const currentFileKey = currentFileUrl.split(`${process.env.AWS_S3_BUCKET_NAME}/`)[1];
+        const currentFileKey = currentFileUrl?.split(`${process.env.AWS_S3_BUCKET_NAME}/`)[1];
+        console.log(currentFileKey);
 
         // List all objects in the folder
         const listParams = {
@@ -71,7 +72,7 @@ const fetchFileFromS3 = async (s3Url) => {
     try {
         // Extract the key from the s3Url
         const bucketName = process.env.AWS_S3_BUCKET_NAME;
-        const fileKey = s3Url.split(`${bucketName}/`)[1]; // Extracts key after the bucket name
+        const fileKey = s3Url?.split(`${bucketName}/`)[1]; // Extracts key after the bucket name
 
         // Define parameters for fetching the file from S3
         const getParams = {
@@ -97,8 +98,8 @@ const fetchFileFromS3 = async (s3Url) => {
 
 // Sample similarity function (using a basic approach; for more accuracy, consider libraries like 'string-similarity')
 // const calculateTextSimilarity = (text1, text2) => {
-//     const words1 = text1.split(/\s+/);
-//     const words2 = text2.split(/\s+/);
+//     const words1 = text1?.split(/\s+/);
+//     const words2 = text2?.split(/\s+/);
 
 //     // Create a set for unique words in both texts
 //     const uniqueWords = new Set([...words1, ...words2]);
@@ -133,7 +134,7 @@ const calculateTextSimilarity = async (newFileContent, existingFileContents) => 
     const results = [];
 
     for (const file of existingFileContents) {
-        const studentId = file.key.split('/').pop();
+        const studentId = file.key?.split('/').pop();
 
         const prompt = `
         You are a programming expert. Compare the following code snippets based purely on textual similarity, focusing on the exact words, structure, and phrasing, rather than their functionality or logic.
@@ -192,7 +193,7 @@ const calculateSyntaxSimilarity = async (newFileContent, existingFileContents) =
     const results = [];
 
     for (const file of existingFileContents) {
-        const studentId = file.key.split('/').pop();
+        const studentId = file.key?.split('/').pop();
 
         const prompt = `
         You are a programming expert. Compare the syntax structure of the following code snippets, focusing on code constructs, patterns, and general structure rather than the specific words or functionality.
@@ -304,7 +305,7 @@ const calculateLogicSimilarity = async (newFileContent, existingFileContents) =>
 
     for (const file of existingFileContents) {
         // Extract the submitter ID from the last part of the key
-        const studentId = file.key.split('/').pop();
+        const studentId = file.key?.split('/').pop();
 
         const prompt = `
         You are a programming expert. Compare the logic in the following code snippets and provide a percentage indicating their similarity.
@@ -451,6 +452,7 @@ const postSubmissionTasks = async (submissionData) => {
 
 // Post Submission Student Quiz Analysis
 const analyzeStudentQuiz = async (submissionData) => {
+    console.log(submissionData);
     const { quizId, s3Url, id } = submissionData;
     try {
 
