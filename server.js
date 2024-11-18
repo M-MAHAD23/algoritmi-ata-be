@@ -22,9 +22,7 @@ app.use("/user", require("./routes/UserRoute"));
 app.use("/app", require("./routes/AppRoute"));
 app.use("/chat", require("./routes/ChatRoute"));
 app.use("/quiz", require("./routes/QuizRoute"));
-app.use("/", require("./routes/CourseRoute"));
 app.use("/profile", require("./routes/ProfileRoute"));
-app.use("/enroll-course", require("./routes/EnrollRoute"));
 
 //TODO: Deploy:
 

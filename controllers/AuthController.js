@@ -78,7 +78,6 @@ exports.login__controller = async (req, res, next) => {
       });
     }
 
-    // console.log(userInfo)
     bcrypt
       .compare(password, userInfo.password)
       .then((result) => {

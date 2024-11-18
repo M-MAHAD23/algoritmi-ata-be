@@ -159,8 +159,6 @@ exports.getQuizSubmissionsById = async (req, res) => {
     try {
         const { quizId } = req.body;
 
-        console.log(quizId);
-
         const quizSubmissions = await QuizSubmitter.find(
             {
                 quizId: quizId,
