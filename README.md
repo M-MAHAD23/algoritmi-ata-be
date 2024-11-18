@@ -1,27 +1,29 @@
-This is my University ATA clone.<br>
+# Programming Course Oriented ATA - Backend
 
-<h3>Features:</h3><br>
+## Overview
+This is the backend for the Programming Course Oriented ATA (Artificial Teaching Assistant), developed by Team Algoritmi. It provides APIs to manage user roles, handle quiz submissions, and integrate with OpenAI 4.0-mini for analysis and chatbot functionalities.
 
-1.Role base authentication<br>
-2.Admin can post courses.<br>
-3.Admin can delete courses.<br>
-4.Admin handle teacher and student all things.<br>
-5.Student can see profile.<br>
-6.Student can see all courses.<br>
-7.Teacher can see his/her profile.<br>
-8.Teacher can see All courses.<br>
-9.Student can see all courses info.<br>
-10. Pagination, Route protection etc.<br>
+## Features
+- **Admin**: Batch management.
+- **Teacher**: Quiz and assignment creation, and analysis.
+- **Student**: Quiz submissions and AI-powered feedback.
 
-<h3>Technology: </h3/><br>
+## Prerequisites
+- Node.js (v16+ recommended)
+- npm (v8+ recommended)
+- git
 
-1.Reactjs <br>
-2.Nodejs.<br>
-3.Express js<br>
-4.MongoDB<br>
-5.Heroku Hosting<br>
-6.Material UI<br>
-7. React BootStrap<br>
-8.Module CSS<br>
-9.Redux, React-Redux<br>
-10.Multer and Cloudinary For photo upload<br>
+## Set Up Repo
+1. Private repo, Ask admin for collaboration sharing your main email with github, and clone the repository:
+   ```bash
+    make directory at desktop named ATA and in here run:
+        git clone https://github.com/M-MAHAD23/algoritmi-ata-be
+        cd ATA
+        cd algoritmi-ata-be
+
+## Installation
+- npm i --force
+- npm run dev
+
+## Run At
+- http://localhost:8000
