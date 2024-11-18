@@ -124,7 +124,7 @@ const course = {
 };
 
 // Prompt function to interact with the AI
-exports.prompt = async (chatArray) => {
+exports.prompt = async (chatArray, entity) => {
     try {
         const chat = chatArray;
         // Extract the last user message from the chat array
@@ -136,42 +136,57 @@ exports.prompt = async (chatArray) => {
 
         // const SYSTEM_MESSAGES = `You are provided with a course outline in JSON format: ${JSON.stringify(course)}. When responding to a "User" query, base your answers strictly on the course information provided. If the user asks for code or implementation details, do not provide code snippets. Instead, offer guidance and explanations relevant to their question.`;
 
-        const SYSTEM_MESSAGES = `You are provided with a course outline in JSON format: ${JSON.stringify(course)}. When responding to a "User" query, base your answers strictly on the course information provided. If the user asks for code or implementation details, do not provide any code snippets. Instead, offer **guidance** and **explanations** relevant to their question. Focus on helping the user understand the concepts, processes, and best practices without diving into specific implementations.
+        let SYSTEM_MESSAGES;
 
-In addition, you may answer questions related to:
-1. **Development**: Provide general insights on development practices, tools, methodologies, and best practices relevant to the course topic.
-2. **Tech Stacks**: Offer guidance on commonly used tech stacks in the field related to the course, explaining why certain stacks are preferred for specific tasks and what benefits they provide.
-3. **Trends**: Discuss current and emerging trends in technology that relate to the course material and explain their relevance to the field.
-4. **Career Guidance**: Offer advice on potential career paths, roles, and skills needed in the industry, with respect to the course content and the overall field, helping users understand the career opportunities available to them.
+        if (entity === "Teacher") {
+            SYSTEM_MESSAGES = `You are provided with a course outline in JSON format: ${JSON.stringify(course)}. When responding to a "User" query, base your answers strictly on the course information provided. Offer **guidance** **quizzes** **assignments** and **explanations** relevant to their question. Focus on helping the user make quizzes for course, and understanding the concepts, processes, and best practices without diving into specific implementations.
 
-Always ensure that your answers are grounded in the course material, providing **valuable insights** and actionable advice without resorting to specific code implementations. Make sure the user gains an understanding of the broader context rather than the details of the code itself.`;
+            In addition, you may answer questions related to:
+            1. **Development**: Provide general insights on development practices, tools, methodologies, and best practices relevant to the course topic.
+            2. **Tech Stacks**: Offer guidance on commonly used tech stacks in the field related to the course, explaining why certain stacks are preferred for specific tasks and what benefits they provide.
+            3. **Trends**: Discuss current and emerging trends in technology that relate to the course material and explain their relevance to the field.
+            4. **Career Guidance**: Offer advice on potential career paths, roles, and skills needed in the industry, with respect to the course content and the overall field, helping users understand the career opportunities available to them.
+            
+            Always ensure that your answers are grounded in the course material, providing **valuable insights** and actionable advice without resorting to specific code implementations. Make sure the user gains an understanding of the broader context rather than the details of the code itself.`;
+        }
+        else {
+            SYSTEM_MESSAGES = `You are provided with a course outline in JSON format: ${JSON.stringify(course)}. When responding to a "User" query, base your answers strictly on the course information provided. If the user asks for code or implementation details, do not provide any code snippets. Instead, offer **guidance** and **explanations** relevant to their question. Focus on helping the user understand the concepts, processes, and best practices without diving into specific implementations.
+
+            In addition, you may answer questions related to:
+            1. **Development**: Provide general insights on development practices, tools, methodologies, and best practices relevant to the course topic.
+            2. **Tech Stacks**: Offer guidance on commonly used tech stacks in the field related to the course, explaining why certain stacks are preferred for specific tasks and what benefits they provide.
+            3. **Trends**: Discuss current and emerging trends in technology that relate to the course material and explain their relevance to the field.
+            4. **Career Guidance**: Offer advice on potential career paths, roles, and skills needed in the industry, with respect to the course content and the overall field, helping users understand the career opportunities available to them.
+            
+            Always ensure that your answers are grounded in the course material, providing **valuable insights** and actionable advice without resorting to specific code implementations. Make sure the user gains an understanding of the broader context rather than the details of the code itself.`;
+        }
 
         // Send request to AI
-        const response = await fetch(OPEN_AI_URL, {
-            method: "POST",
-            headers: {
-                "Content-Type": "application/json",
-                Authorization: `Bearer ${OPEN_AI_KEY}`
-            },
-            body: JSON.stringify({
-                model: "gpt-4o-mini",
-                messages: [
-                    { role: "system", content: SYSTEM_MESSAGES },
-                    { role: "user", content: userMessage }
-                ],
-                temperature: 0,
-                max_tokens: 2048,
-                top_p: 1,
-                frequency_penalty: 0,
-                presence_penalty: 0
-            })
-        });
+        // const response = await fetch(OPEN_AI_URL, {
+        //     method: "POST",
+        //     headers: {
+        //         "Content-Type": "application/json",
+        //         Authorization: `Bearer ${OPEN_AI_KEY}`
+        //     },
+        //     body: JSON.stringify({
+        //         model: "gpt-4o-mini",
+        //         messages: [
+        //             { role: "system", content: SYSTEM_MESSAGES },
+        //             { role: "user", content: userMessage }
+        //         ],
+        //         temperature: 0,
+        //         max_tokens: 2048,
+        //         top_p: 1,
+        //         frequency_penalty: 0,
+        //         presence_penalty: 0
+        //     })
+        // });
 
-        const data = await response.json();
+        // const data = await response.json();
 
         // Add the AI's response to the chat array
-        const aiMessage = data.choices[0].message.content;
-        chat.push({ role: "Model", message: aiMessage });
+        // const aiMessage = data.choices[0].message.content;
+        chat.push({ role: "Model", message: "No" });
 
         // Return the updated chat array
         return chat;

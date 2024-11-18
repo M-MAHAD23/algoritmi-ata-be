@@ -9,7 +9,8 @@ exports.createChat = async (req, res) => {
         const { batchId, chatName, chatOwner, message } = req.body;
         const newChat = await Chat.create({ batchId, chatName, chatOwner });
         if (!message) return res.status(201).json({ data: newChat });
-        const liveChat = await prompt(message);
+        const populatedChat = await newChat.populate('chatOwner').execPopulate();
+        const liveChat = await prompt(message, entity, populatedChat?.chatOwner?.role);
         const updatedChat = await Chat.findOneAndUpdate(
             {
                 _id: newChat._id
@@ -86,12 +87,11 @@ exports.updateChatById = async (req, res) => {
                 $push: { chat: message[0] },
             },
             { new: true }
-        );
+        ).populate('chatOwner');
         if (!updatedChat || !updatedChat.isActive) {
             return res.status(404).json({ message: "Chat not found" });
         }
-
-        const liveChat = await prompt(updatedChat.chat);
+        const liveChat = await prompt(updatedChat?.chat, updatedChat?.chatOwner?.role);
         const updatedChatLive = await Chat.findOneAndUpdate(
             { _id: updatedChat._id },
             { chat: liveChat },
