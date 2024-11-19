@@ -49,17 +49,18 @@ exports.getBatchById = async (req, res) => {
     try {
         const { batchId } = req.body;
 
-        const batch = await Batch.find(
-            {
-                _id: batchId,
-            }
-        )
-            .populate('batchTeacher')
-            .populate('batchStudent')
-            .populate('batchQuiz');
+        const batch = await Batch.findOne({ _id: batchId })
+            .populate('batchTeacher') // Populate batchTeacher
+            .populate('batchStudent') // Populate batchStudent
+            .populate({
+                path: 'batchQuiz', // Path to populate
+                match: { isActive: true }, // Only include quizzes where isActive is true
+            });
+
         if (!batch) {
             return res.status(404).json({ success: false, message: 'Batch not found' });
         }
+
         res.status(200).json({ success: true, data: batch });
     } catch (error) {
         res.status(400).json({ success: false, error: error.message });

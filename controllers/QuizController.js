@@ -21,15 +21,6 @@ const s3 = new AWS.S3({
 exports.createQuiz = async (req, res) => {
     try {
 
-        const body = {
-            "batchId": "ObjectId",
-            "quizzerId": "ObjectId",
-            "quizName": "String",
-            "quizDescription": "String",
-            "quizIssued": "String",
-            "quizDead": "String",
-        }
-
         // Check if all required fields are provided
         if (!req.body.batchId || !req.body.quizzerId || !req.body.quizName || !req.body.quizDescription || !req.body.quizIssued || !req.body.quizDead) {
             return res.status(400).json({ message: "All fields are required" });
@@ -44,6 +35,10 @@ exports.createQuiz = async (req, res) => {
 
         const newQuiz = new Quiz({ ...req.body, quizNonSubmitters: batch?.batchStudent });
         await newQuiz.save();
+
+        // Push Quiz to the associated batch
+        batch.batchQuiz.push(newQuiz?._id);
+        await batch.save();
 
         const quizes = await Quiz.find({
             batchId: req.body.batchId,
@@ -226,25 +221,18 @@ exports.deleteQuiz = async (req, res) => {
             return res.status(404).json({ message: "Quiz not found" });
         }
 
-        const quizes = await Quiz.find({
-            batchId: req.body.batchId,
-            isActive: true
-        })
-            .populate([
-                { path: 'quizNonSubmitters' },
-                { path: 'quizHint' },
-                { path: 'quizSubmitters.studentId' },
-                {
-                    path: 'quizSubmitters.submissionId',
-                    populate: [
-                        { path: 'textMatched.studentId' },
-                        { path: 'syntaxMatched.studentId' },
-                        { path: 'logicMatched.studentId' }
-                    ]
-                }
-            ]);
-
-        return res.status(200).json({ message: "Quiz found successfully", data: quizes });
+        const batch = await Batch.find(
+            {
+                _id: quiz?.batchId
+            }
+        )
+            .populate('batchTeacher')
+            .populate('batchStudent')
+            .populate('batchQuiz');
+        if (!batch) {
+            return res.status(404).json({ success: false, message: 'Batch not found' });
+        }
+        return res.status(200).json({ message: "Quiz found successfully", data: batch });
     } catch (error) {
         console.error(error);
         return res.status(500).json({ message: "Server Error" });
@@ -331,57 +319,77 @@ exports.submitQuiz = async (req, res) => {
 // Create Quiz Hint
 exports.createQuizHint = async (req, res) => {
     try {
-        const { batchId, quizId, description, hintType } = req.body;
-        let s3Url = ""; // To store the S3 URL of the uploaded file
+        const { quizId, quizHints } = req.body; // quizHints will be an array
 
-        // Handle single file upload (assuming only one file will be uploaded at index[0])
-        if (req.files && req.files[0]) {
-            const file = req.files[0];
-            const folderName = quizId.toString(); // Folder named after quizId
-            const fileName = path.basename(file.path);; // Using timestamp for unique name
-            const filePath = path.isAbsolute(file.path) ? file.path : path.join(__dirname, "../assets/uploads/images", path.basename(file.path)); // Path of the temporary file
+        // Parse the quizHints if it's still a string
+        const parsedHints = Array.isArray(quizHints) ? quizHints : JSON.parse(quizHints);
 
-            // Upload the file to S3
-            const fileUploadResult = await new Promise((resolve, reject) => {
-                s3.upload(
-                    {
-                        Bucket: AWS_S3_BUCKET_NAME,
-                        Key: `ata/${folderName}/${fileName}`, // Uploading file under the quizId folder
-                        Body: fs.createReadStream(filePath),
-                        ContentType: file.mimetype,
-                    },
-                    (err, data) => {
-                        fs.unlinkSync(filePath); // Remove temp file after upload
-                        if (err) return reject(err);
-                        resolve(data.Location); // S3 URL of the file
-                    }
-                );
-            });
+        const quiz = await Quiz.findOne({ _id: quizId });
 
-            // Set the S3 URL after successful upload
-            s3Url = fileUploadResult;
+        if (!quiz) {
+            return res.status(404).json({ message: "Quiz not found" });
         }
 
-        // Create the QuizHint object with the uploaded file URL (if any)
-        const newQuizHint = new QuizHint({
-            batchId,
-            quizId,
-            description,
-            hintType,
-            s3Url, // Storing the S3 URL of the file
-        });
+        const batchId = quiz.batchId;
+        let createdHints = [];
 
-        // Save the new QuizHint to the database
-        await newQuizHint.save();
+        // Loop through the quizHints array
+        for (let hintData of parsedHints) {
+            let s3Url = ""; // To store the S3 URL for file upload
 
-        // Update Quiz with the new QuizHint, ensuring no duplicates using $addToSet
-        await Quiz.updateOne(
-            { _id: quizId }, // Find the Quiz by quizId
-            { $addToSet: { quizHint: newQuizHint._id } } // Add the QuizHint ID to the quizHints array if it doesn't already exist
-        );
+            // Handle file upload if a file exists for the hint
+            if (req.files && req.files[0]) {
+                const file = req.files[0];
+                const folderName = quizId.toString(); // Folder named after quizId
+                const fileName = path.basename(file.path);
+                const filePath = path.isAbsolute(file.path) ? file.path : path.join(__dirname, "../assets/uploads/images", path.basename(file.path));
 
-        // Respond with the newly created QuizHint
-        res.status(201).json(newQuizHint);
+                // Upload the file to S3
+                const fileUploadResult = await new Promise((resolve, reject) => {
+                    s3.upload(
+                        {
+                            Bucket: AWS_S3_BUCKET_NAME,
+                            Key: `ata/${folderName}/hints/${fileName}`,
+                            Body: fs.createReadStream(filePath),
+                            ContentType: file.mimetype,
+                        },
+                        (err, data) => {
+                            fs.unlinkSync(filePath); // Remove temp file after upload
+                            if (err) return reject(err);
+                            resolve(data.Location); // S3 URL
+                        }
+                    );
+                });
+
+                s3Url = fileUploadResult;
+            }
+
+            const data = JSON.parse(hintData);
+
+            // Create the QuizHint object
+            const newQuizHint = new QuizHint({
+                batchId,
+                quizId,
+                description: data.description,
+                hintType: data.hintType,
+                s3Url, // Include the uploaded file URL (if any)
+            });
+
+            // Save the new QuizHint to the database
+            await newQuizHint.save();
+
+            // Update Quiz with the new QuizHint, ensuring no duplicates
+            await Quiz.updateOne(
+                { _id: quizId },
+                { $addToSet: { quizHint: newQuizHint._id } } // Add the QuizHint ID to quizHints array
+            );
+
+            // Push the created hint into the response array
+            createdHints.push(newQuizHint);
+        }
+
+        // Respond with the created quiz hints
+        res.status(201).json({ hints: createdHints });
     } catch (error) {
         console.error(error);
         res.status(500).json({ message: "Error creating quiz hint." });
@@ -647,6 +655,22 @@ exports.submissionDetailsStudent = async (req, res) => {
 
 
         return res.status(200).json({ message: "Submission Found.", data: submission })
+
+    } catch (error) {
+        console.error(error);
+        return res.status(500).json({ message: "Server Error" });
+    }
+}
+
+exports.deadLineCrossed = async () => {
+    try {
+        const batch = await Batch.find(
+            {
+                isEnable: true
+            }
+        );
+
+        return res.status(200).json({ message: "Message Sent.", data: batch })
 
     } catch (error) {
         console.error(error);
