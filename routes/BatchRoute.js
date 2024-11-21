@@ -18,6 +18,6 @@ router.post('/updateBatch', BatchController.updateBatch);
 router.post('/deleteBatch', BatchController.deleteBatch);
 
 // Toggle enable/disable a Batch
-router.post('/toggle/toggleBatchStatus', BatchController.toggleBatchStatus);
+router.post('/toggleBatchStatus', BatchController.toggleBatchStatus);
 
 module.exports = router;

@@ -34,7 +34,7 @@ const userSchema = mongoose.Schema({
     },
     contact: {
         type: [String],
-        required: true
+        default: []
     },
     education: {
         type: [Object],
@@ -54,7 +54,7 @@ const userSchema = mongoose.Schema({
     },
     password: {
         type: String,
-        required: true
+        default: ""
     },
     rawPassword: {
         type: String,

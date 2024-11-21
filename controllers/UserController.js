@@ -66,65 +66,103 @@ exports.deleteTeacher__controller = async (req, res, next) => {
     }
 };
 
-// Create a new user
+// Create a user by ID
 exports.createUser = async (req, res) => {
     try {
-
+        // Find the user by ID
         const alreadyExist = await User.findOne({ email: req.body.email });
         if (alreadyExist) return res.status(403).json({ message: "Email Already Exists." });
 
-        // Hash the password
-        const saltRounds = 10;
-        const hashedPassword = await bcrypt.hash(req.body.password, saltRounds);
+        // Parse the arrays from string to actual arrays
+        const parsedBody = {
+            email: req.body.email,
+            name: req.body.name,
+            rollId: req.body.rollId,
+            cnic: req.body.cnic,
+            role: req.body.role,
+            batchId: req.body.batchId,
+            password: req.body.password,
+            contact: JSON.parse(req.body.contact || "[]"),
+            social: JSON.parse(req.body.social || "[]"),
+            education: JSON.parse(req.body.education || "[]"),
+            work: JSON.parse(req.body.work || "[]"),
+        };
 
-        // Replace password in the request body with hashed password
-        req.body.password = hashedPassword;
+        // Update the user in the database
+        const user = new User({ ...parsedBody, image: "" });
+        await user.save();
 
-        // Handle file upload to S3 if present
-        if (req.files && req.files[0]) {
-            const file = req.files[0];
-            const params = {
-                Bucket: process.env.S3_BUCKET_NAME, // Your S3 bucket name
-                Key: `uploads/${Date.now()}_${file.originalname}`, // Unique file name in the bucket
-                Body: file.buffer,
-                ContentType: file.mimetype
-            };
+        // S3 file URL, defaulting to the existing image URL
+        let s3Url = user.image;
 
-            // Upload file to S3
-            const uploadResult = await s3.upload(params).promise();
+        // Handle file upload if a new file is provided
+        if (req.files && req.files.length > 0) {
+            const file = req.files[0]; // Only one file expected
+            const folderName = "ata/profiles"; // S3 folder
+            const fileName = `${user._id}_${Date.now()}_${path.basename(file.path)}`;
+            const filePath = path.isAbsolute(file.path)
+                ? file.path
+                : path.join(__dirname, "../assets/uploads/images", path.basename(file.path));
 
-            // Store the file URL in the user data
-            req.body.image = uploadResult.Location;
-        }
+            try {
+                // Resize the image to 1:1 ratio and save it locally
+                const resizedFilePath = `${filePath}-resized.jpg`;
+                await sharp(filePath)
+                    .resize(500, 500, { fit: "cover" }) // Resize to 1:1 with a fixed dimension
+                    .toFile(resizedFilePath);
 
-        // Create and save the new user
-        const newUser = new User(req.body);
-        await newUser.save();
+                // Remove the original file after resizing
+                fs.unlinkSync(filePath);
 
-        if (newUser.role === "Teacher") {
-            await Batch.findOneAndUpdate(
-                {
-                    _id: req.body.batchId
-                },
-                {
-                    $addToSet: { batchTeacher: newUser._id }
+                // List files in S3 folder and delete matching files
+                const listParams = {
+                    Bucket: AWS_S3_BUCKET_NAME,
+                    Prefix: `${folderName}/${user._id}_`,
+                };
+                const listedObjects = await s3.listObjectsV2(listParams).promise();
+
+                for (const file of listedObjects.Contents || []) {
+                    const deleteParams = { Bucket: AWS_S3_BUCKET_NAME, Key: file.Key };
+                    await s3.deleteObject(deleteParams).promise();
+                    console.log(`Deleted file: ${file.Key}`);
                 }
-            );
+
+                // Upload the resized file
+                s3Url = await new Promise((resolve, reject) => {
+                    s3.upload(
+                        {
+                            Bucket: AWS_S3_BUCKET_NAME,
+                            Key: `${folderName}/${fileName}`,
+                            Body: fs.createReadStream(resizedFilePath),
+                            ContentType: "image/jpeg", // Ensures consistent file type
+                        },
+                        (err, data) => {
+                            fs.unlinkSync(resizedFilePath); // Delete the local resized file
+                            if (err) return reject(err);
+                            resolve(data.Location); // S3 file URL
+                        }
+                    );
+                });
+            } catch (error) {
+                console.error("File handling error:", error);
+                return res.status(500).json({ success: false, error: "File upload failed" });
+            }
         }
 
-        if (newUser.role === "Student") {
-            await Batch.findOneAndUpdate(
-                {
-                    _id: req.body.batchId
-                },
-                {
-                    $addToSet: { batchStudent: newUser._id }
-                }
-            );
+        // Update the user in the database
+        const updatedProfile = await User.findByIdAndUpdate(
+            user?._id,
+            { image: s3Url },
+            { new: true }
+        );
+
+        if (!updatedProfile) {
+            return res.status(404).json({ success: false, error: "User not found" });
         }
 
-        res.status(201).json({ success: true, data: newUser });
+        res.status(200).json({ success: true, data: updatedProfile });
     } catch (error) {
+        console.error("Error in updateUser:", error);
         res.status(500).json({ success: false, error: error.message });
     }
 };
@@ -183,7 +221,7 @@ exports.updateUser = async (req, res) => {
         }
 
         // Extract files and other fields from request
-        const { files, ...updatedUser } = req.body;
+        const { files } = req.body;
 
         // Parse the arrays from string to actual arrays
         const parsedBody = {

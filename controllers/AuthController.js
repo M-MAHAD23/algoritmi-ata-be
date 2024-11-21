@@ -37,7 +37,6 @@ exports.register__controller = async (req, res, next) => {
           errors: "The specified batch is not enabled or does not exist."
         });
       }
-      userInfo.rollId = rollId;
       userInfo.password = hash;
       rawPassword = password;
       userInfo.isRegistered = true,

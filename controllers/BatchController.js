@@ -105,7 +105,7 @@ exports.deleteBatch = async (req, res) => {
 // Toggle enable/disable a Batch by ID
 exports.toggleBatchStatus = async (req, res) => {
     try {
-        const batch = await Batch.findById(req.params.id);
+        const batch = await Batch.findById(req.body.batchId);
         if (!batch) {
             return res.status(404).json({ success: false, message: 'Batch not found' });
         }
