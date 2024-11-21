@@ -9,6 +9,14 @@ const Batch = mongoose.Schema(
         },
         batchSession: {
             type: String,
+            default: "",
+        },
+        batchStart: {
+            type: String,
+            required: true,
+        },
+        batchEnd: {
+            type: String,
             required: true,
         },
         batchName: {

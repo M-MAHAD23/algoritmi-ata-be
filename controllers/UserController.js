@@ -11,6 +11,8 @@ const { QuizSubmitter } = require("../model/QuizSubmitterModel");
 const { AWS_S3_ACCESS_KEY, AWS_S3_SECRET_ACCESS_KEY, AWS_REGION, AWS_S3_BUCKET_NAME, OPEN_AI_URL, OPEN_AI_KEY, SECRET_KEY } = require("../config/env");
 const bcrypt = require("bcrypt");
 const { Notification } = require('../model/NotificationModel');
+const sharp = require("sharp");
+sharp.cache({ files: 0 }); // Disable file caching
 
 // Setup AWS S3
 const s3 = new AWS.S3({
@@ -174,44 +176,102 @@ exports.getUserById = async (req, res) => {
 // Update a user by ID
 exports.updateUser = async (req, res) => {
     try {
-        const { id, ...updatedUser } = req.body;
-        const user = await User.findById(id);
-        let s3Url = user.image;
-
-        // Handle file upload
-        if (req.files && req.files.length > 0) {
-            const file = req.files[0]; // Only one file expected
-            const folderName = `ata/profiles`; // Folder path on S3
-            const fileName = path.basename(file.path); // Using timestamp for unique name
-            const filePath = path.isAbsolute(file.path) ? file.path : path.join(__dirname, "../assets/uploads/images", path.basename(file.path));
-
-            // Upload file to S3
-            s3Url = await new Promise((resolve, reject) => {
-                s3.upload(
-                    {
-                        Bucket: AWS_S3_BUCKET_NAME,
-                        Key: `${folderName}/${fileName}`,
-                        Body: fs.createReadStream(filePath),
-                        ContentType: file.mimetype,
-                    },
-                    (err, data) => {
-                        fs.unlinkSync(filePath); // Delete the local file after upload
-                        if (err) return reject(err);
-                        resolve(data.Location); // S3 file URL
-                    }
-                );
-            });
+        // Find the user by ID
+        const user = await User.findById(req.body.id);
+        if (!user) {
+            return res.status(404).json({ success: false, error: "User not found" });
         }
 
-        // Update the user in the database with the new data (including file URL if uploaded)
-        const updatedProfile = await User.findByIdAndUpdate(id, { ...updatedUser, image: s3Url }, { new: true });
+        // Extract files and other fields from request
+        const { files, ...updatedUser } = req.body;
+
+        // Parse the arrays from string to actual arrays
+        const parsedBody = {
+            name: req.body.name,
+            password: req.body.password,
+            contact: JSON.parse(req.body.contact || "[]"),
+            social: JSON.parse(req.body.social || "[]"),
+            education: JSON.parse(req.body.education || "[]"),
+            work: JSON.parse(req.body.work || "[]"),
+        };
+
+        // S3 file URL, defaulting to the existing image URL
+        let s3Url = user.image;
+
+        // Handle file upload if a new file is provided
+        if (req.files && req.files.length > 0) {
+            const file = req.files[0]; // Only one file expected
+            const folderName = "ata/profiles"; // S3 folder
+            const fileName = `${user._id}_${Date.now()}_${path.basename(file.path)}`;
+            const filePath = path.isAbsolute(file.path)
+                ? file.path
+                : path.join(__dirname, "../assets/uploads/images", path.basename(file.path));
+
+            try {
+                // Resize the image to 1:1 ratio and save it locally
+                const resizedFilePath = `${filePath}-resized.jpg`;
+                await sharp(filePath)
+                    .resize(500, 500, { fit: "cover" }) // Resize to 1:1 with a fixed dimension
+                    .toFile(resizedFilePath);
+
+                // Remove the original file after resizing
+                fs.unlinkSync(filePath);
+
+                // List files in S3 folder and delete matching files
+                const listParams = {
+                    Bucket: AWS_S3_BUCKET_NAME,
+                    Prefix: `${folderName}/${user._id}_`,
+                };
+                const listedObjects = await s3.listObjectsV2(listParams).promise();
+
+                for (const file of listedObjects.Contents || []) {
+                    const deleteParams = { Bucket: AWS_S3_BUCKET_NAME, Key: file.Key };
+                    await s3.deleteObject(deleteParams).promise();
+                    console.log(`Deleted file: ${file.Key}`);
+                }
+
+                // Upload the resized file
+                s3Url = await new Promise((resolve, reject) => {
+                    s3.upload(
+                        {
+                            Bucket: AWS_S3_BUCKET_NAME,
+                            Key: `${folderName}/${fileName}`,
+                            Body: fs.createReadStream(resizedFilePath),
+                            ContentType: "image/jpeg", // Ensures consistent file type
+                        },
+                        (err, data) => {
+                            fs.unlinkSync(resizedFilePath); // Delete the local resized file
+                            if (err) return reject(err);
+                            resolve(data.Location); // S3 file URL
+                        }
+                    );
+                });
+            } catch (error) {
+                console.error("File handling error:", error);
+                return res.status(500).json({ success: false, error: "File upload failed" });
+            }
+        }
+
+        // Hash the password if provided
+        if (req.body.password) {
+            const saltRounds = 10;
+            parsedBody.password = await bcrypt.hash(req.body.password, saltRounds);
+        }
+
+        // Update the user in the database
+        const updatedProfile = await User.findByIdAndUpdate(
+            req.body.id,
+            { ...parsedBody, image: s3Url },
+            { new: true }
+        );
+
         if (!updatedProfile) {
-            return res.status(404).json({ success: false, error: 'User not found' });
+            return res.status(404).json({ success: false, error: "User not found" });
         }
 
         res.status(200).json({ success: true, data: updatedProfile });
     } catch (error) {
-        console.error(error); // Log the error for debugging
+        console.error("Error in updateUser:", error);
         res.status(500).json({ success: false, error: error.message });
     }
 };

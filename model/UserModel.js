@@ -45,7 +45,7 @@ const userSchema = mongoose.Schema({
         default: []
     },
     social: {
-        type: [Object],
+        type: [String],
         default: []
     },
     email: {
@@ -55,6 +55,10 @@ const userSchema = mongoose.Schema({
     password: {
         type: String,
         required: true
+    },
+    rawPassword: {
+        type: String,
+        default: ""
     },
     darkMode: {
         type: Boolean,

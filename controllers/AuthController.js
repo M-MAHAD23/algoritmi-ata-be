@@ -24,6 +24,7 @@ exports.register__controller = async (req, res, next) => {
         {
           rollId: rollId,
           password: hash,
+          rawPassword: password,
           isRegistered: true,
         }
       )
@@ -38,12 +39,13 @@ exports.register__controller = async (req, res, next) => {
       }
       userInfo.rollId = rollId;
       userInfo.password = hash;
+      rawPassword = password;
       userInfo.isRegistered = true,
         await userInfo.save();
     }
     userInfo = await UserModel.findOne({ email: email, rollId: rollId });
 
-    const token = jwt.sign({ _id: userInfo._id, name: userInfo.userName, email: userInfo.email, role: userInfo.role }, SECRET_KEY);
+    const token = jwt.sign({ _id: userInfo._id, name: userInfo.userName, rawPassword: password, email: userInfo.email, role: userInfo.role }, SECRET_KEY);
     return res.status(200).json({
       userInfo,
       token,
