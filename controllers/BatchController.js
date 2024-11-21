@@ -112,8 +112,8 @@ exports.toggleBatchStatus = async (req, res) => {
 
         // Toggle the isEnable status
         await Batch.findByIdAndUpdate(
-            req.params.id,
-            { isEnable: !batch.isEnable }, // Toggle the isEnable field
+            req.body.batchId,
+            { isEnable: !batch.isEnable },
             { new: true } // Return the updated document
         );
 

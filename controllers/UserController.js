@@ -155,9 +155,33 @@ exports.createUser = async (req, res) => {
             { image: s3Url },
             { new: true }
         );
-
         if (!updatedProfile) {
             return res.status(404).json({ success: false, error: "User not found" });
+        }
+
+        if (updatedProfile?.role === "Teacher") {
+            await Batch.findOneAndUpdate(
+                {
+                    _id: updatedProfile?.batchId,
+                },
+                {
+                    $push: {
+                        batchTeacher: updatedProfile?._id,
+                    },
+                }
+            );
+        }
+        if (updatedProfile.role === "Student") {
+            await Batch.findOneAndUpdate(
+                {
+                    _id: updatedProfile?.batchId,
+                },
+                {
+                    $push: {
+                        batchStudent: updatedProfile?._id,
+                    },
+                }
+            );
         }
 
         res.status(200).json({ success: true, data: updatedProfile });
