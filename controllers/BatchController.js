@@ -9,10 +9,10 @@ exports.createBatch = async (req, res) => {
         await batch.save();
 
         // Populate references before sending the response
-        const batches = await Batch.find();
-        // .populate('batchTeacher')
-        // .populate('batchStudent')
-        // .populate('batchQuiz');
+        const batches = await Batch.find()
+            .populate('batchTeacher')
+            .populate('batchStudent')
+            .populate('batchQuiz');
         res.status(201).json({ success: true, data: batches });
     } catch (error) {
         res.status(400).json({ success: false, error: error.message });
