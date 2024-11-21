@@ -27,7 +27,7 @@ const storage = multer.diskStorage({
 // File filter to validate file size and type
 const fileFilter = (req, file, cb) => {
     // Add pdf and word document types to the allowed types regex
-    const allowedTypes = /jpeg|jpg|png|webp|pdf|doc|docx/;
+    const allowedTypes = /jpeg|gif|jpg|png|webp|pdf|doc|docx/;
     const extname = allowedTypes.test(path.extname(file.originalname).toLowerCase());
     const mimetype = allowedTypes.test(file.mimetype);
 

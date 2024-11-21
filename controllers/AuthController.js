@@ -38,7 +38,7 @@ exports.register__controller = async (req, res, next) => {
         });
       }
       userInfo.password = hash;
-      rawPassword = password;
+      userInfo.rawPassword = password;
       userInfo.isRegistered = true,
         await userInfo.save();
     }
