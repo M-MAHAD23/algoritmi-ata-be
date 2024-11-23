@@ -7,6 +7,7 @@ const { Batch } = require("../model/BatchModel");
 const { QuizHint } = require("../model/QuizHintModel");
 const { QuizSubmitter } = require("../model/QuizSubmitterModel");
 const { AWS_S3_ACCESS_KEY, AWS_S3_SECRET_ACCESS_KEY, AWS_REGION, AWS_S3_BUCKET_NAME, OPEN_AI_URL, OPEN_AI_KEY } = require("../config/env");
+const QuizModel = require("../model/QuizModel");
 
 // Setup AWS S3
 const s3 = new AWS.S3({
@@ -359,9 +360,10 @@ const calculateLogicSimilarity = async (newFileContent, existingFileContents) =>
     return results;
 };
 
-const checkCodeIntegrity = async (newFileContent) => {
+const checkCodeIntegrity = async (newFileContent, quiz) => {
     const prompt = `
-    You are a programming instructor. Please analyze the following student-submitted code and provide feedback on its quality, completeness, and whether it seems like a genuine attempt. Determine if:
+    You are a programming instructor. Please analyze the following student-submitted code according to the quiz: ${quiz},
+    and provide feedback on its quality, completeness, and whether it seems like a genuine attempt. Determine if:
     - The code is empty or mostly whitespace.
     - It seems incomplete or overly simplified.
     - It lacks an executable structure (e.g., missing a main function or essential logic).
@@ -428,8 +430,14 @@ const postSubmissionTasks = async (submissionData) => {
         // 3. Logic Similarity Check
         const logicMatched = await calculateLogicSimilarity(newFileContent, existingFileContents);
 
+        const quiz = await QuizModel.findOne(
+            {
+                _id: quizId,
+            }
+        );
+
         // 4. Ethics
-        const ethics = await checkCodeIntegrity(newFileContent);
+        const ethics = await checkCodeIntegrity(newFileContent, quiz);
 
 
         // 5. Copied from AI Check
