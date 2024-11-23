@@ -11,7 +11,7 @@ exports.register__controller = async (req, res, next) => {
     const { rollId, email, password } = req.body;
 
     let userInfo = await UserModel.findOne({ email: email, rollId: rollId });
-    if (!userInfo) return res.status(404).json({ message: "No Such User", data: null });
+    if (!userInfo || !userInfo?.isEnable) return res.status(404).json({ message: "No Such User", data: null });
     if (userInfo?.isRegistered) return res.status(403).json({ message: "Account Already Exists." });
 
     const hash = await bcrypt.hash(password, 10);

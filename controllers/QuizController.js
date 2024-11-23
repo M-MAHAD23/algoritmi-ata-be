@@ -331,65 +331,50 @@ exports.createQuizHint = async (req, res) => {
         }
 
         const batchId = quiz.batchId;
-        let createdHints = [];
+        const uploadedFiles = req.files['files']; // Extract the array of files
+        console.log(req.files['files']);
+        for (let i = 0; i < parsedHints.length; i++) {
+            const hintData = parsedHints[i];
+            let s3Url = '';  // Initialize S3 URL
 
-        // Loop through the quizHints array
-        for (let hintData of parsedHints) {
-            let s3Url = ""; // To store the S3 URL for file upload
+            // Map file to hint based on the index
+            if (uploadedFiles && uploadedFiles[i]) {
+                const file = uploadedFiles[i];
 
-            // Handle file upload if a file exists for the hint
-            if (req.files && req.files[0]) {
-                const file = req.files[0];
-                const folderName = quizId.toString(); // Folder named after quizId
-                const fileName = path.basename(file.path);
-                const filePath = path.isAbsolute(file.path) ? file.path : path.join(__dirname, "../assets/uploads/images", path.basename(file.path));
-
-                // Upload the file to S3
+                // Upload to S3 (as you currently do)
                 const fileUploadResult = await new Promise((resolve, reject) => {
                     s3.upload(
                         {
                             Bucket: AWS_S3_BUCKET_NAME,
-                            Key: `ata/${folderName}/hints/${fileName}`,
-                            Body: fs.createReadStream(filePath),
+                            Key: `ata/${quizId}/hints/${file.filename}`,
+                            Body: fs.createReadStream(file.path),
                             ContentType: file.mimetype,
                         },
                         (err, data) => {
-                            fs.unlinkSync(filePath); // Remove temp file after upload
+                            fs.unlinkSync(file.path); // Remove temp file after upload
                             if (err) return reject(err);
-                            resolve(data.Location); // S3 URL
+                            resolve(data.Location);  // Return the S3 URL
                         }
                     );
                 });
 
-                s3Url = fileUploadResult;
+                s3Url = fileUploadResult;  // Save the S3 URL
             }
 
-            const data = JSON.parse(hintData);
-
-            // Create the QuizHint object
+            // Create and save the hint with the S3 URL
             const newQuizHint = new QuizHint({
                 batchId,
                 quizId,
-                description: data.description,
-                hintType: data.hintType,
-                s3Url, // Include the uploaded file URL (if any)
+                description: hintData.description,
+                hintType: hintData.hintType,
+                s3Url,  // Include the S3 URL
             });
 
-            // Save the new QuizHint to the database
             await newQuizHint.save();
-
-            // Update Quiz with the new QuizHint, ensuring no duplicates
-            await Quiz.updateOne(
-                { _id: quizId },
-                { $addToSet: { quizHint: newQuizHint._id } } // Add the QuizHint ID to quizHints array
-            );
-
-            // Push the created hint into the response array
-            createdHints.push(newQuizHint);
         }
 
         // Respond with the created quiz hints
-        res.status(201).json({ hints: createdHints });
+        res.status(201).json({ message: "Success" });
     } catch (error) {
         console.error(error);
         res.status(500).json({ message: "Error creating quiz hint." });
@@ -518,8 +503,10 @@ exports.analyzeQuiz = async (req, res) => {
     try {
         const { batchId, quizId, s3Url, _id } = req.body.submission;
 
+        console.log(req.body)
+
         const submissionData = {
-            quizId: quizId,
+            quizId: quizId?._id,
             s3Url: s3Url,
             id: _id,
         }
@@ -529,6 +516,8 @@ exports.analyzeQuiz = async (req, res) => {
                 _id: _id
             }
         );
+
+        console.log(submissionData);
 
         const analyzeQuiz = await analyzeStudentQuiz(submissionData);
         if (analyzeQuiz !== "true") res.status(400).json({ message: "Could not analyze the submitted quiz.", data: null });

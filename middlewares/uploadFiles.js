@@ -47,13 +47,14 @@ const upload = multer({
 
 // Middleware function to handle multiple files upload with error handling
 const uploadFiles = (req, res, next) => {
-    upload.array("files")(req, res, (error) => { // No file count limit
+    // Accept multiple files with the field name 'files'
+    upload.fields([{ name: 'files', maxCount: 10 }])(req, res, (error) => {  // Adjust maxCount as needed
         if (error) {
             if (error instanceof multer.MulterError) {
-                console.log(error);
+                console.error('Multer error:', error);
                 return res.status(400).json({ error: error.message });
             } else {
-                console.log(error);
+                console.error('Error:', error);
                 return res.status(400).json({ error: error.message });
             }
         }
