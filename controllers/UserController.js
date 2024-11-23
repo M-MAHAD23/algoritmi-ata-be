@@ -143,7 +143,6 @@ exports.createUser = async (req, res) => {
                         }
                     );
                 });
-                console.log("======>", s3Url);
             } catch (error) {
                 console.error("File handling error:", error);
                 return res.status(500).json({ success: false, error: "File upload failed" });
@@ -261,7 +260,6 @@ exports.updateUser = async (req, res) => {
         // Handle file upload if a new file is provided
         if (req.files) {
             const file = req.files ? req.files['files'][0] : null; // Only one file expected
-            console.log(file);
             const folderName = "ata/profiles"; // S3 folder
             const fileName = `${user._id}_${Date.now()}_${path.basename(file.path)}`;
             const filePath = path.isAbsolute(file.path)
