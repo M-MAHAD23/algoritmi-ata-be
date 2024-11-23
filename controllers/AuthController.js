@@ -61,12 +61,18 @@ exports.login__controller = async (req, res, next) => {
   try {
     const { email, password } = req.body;
 
-    const userInfo = await (await UserModel.findOne({ email }));
+    const userInfo = await UserModel.findOne({ email });
     if (!userInfo) return res.status(404).json({ message: "No Such User", data: null });
 
-    if (userInfo.role !== "Admin") {
-      const batch = await Batch.findById(userInfo.batchId);
-      if (!batch || !batch.isEnable) {
+    if (userInfo && !userInfo?.isRegistered) {
+      return res.status(403).json({
+        errors: "Please Sign Up 1st.",
+      });
+    }
+
+    if (userInfo?.role !== "Admin") {
+      const batch = await Batch.findById(userInfo?.batchId);
+      if (!batch || !batch?.isEnable) {
         return res.status(400).json({
           errors: "The specified batch is not enabled or does not exist."
         });
@@ -80,7 +86,7 @@ exports.login__controller = async (req, res, next) => {
     }
 
     bcrypt
-      .compare(password, userInfo.password)
+      .compare(password, userInfo?.password)
       .then((result) => {
         if (!result) {
           return res.status(401).json({
