@@ -97,7 +97,7 @@ exports.createUser = async (req, res) => {
 
         // Handle file upload if a new file is provided
         if (req.files) {
-            const file = req.files ? req.files['files'] : null;
+            const file = req.files ? req.files['files'][0] : null;
             const folderName = "ata/profiles"; // S3 folder
             const fileName = `${user._id}_${Date.now()}_${path.basename(file.path)}`;
             const filePath = path.isAbsolute(file.path)
