@@ -29,6 +29,8 @@ router.get(
 // Create a new user
 router.post('/createUser', uploadFiles, UserController.createUser);
 
+router.post('/addExisting', UserController.addExisting);
+
 // Get all users
 router.post('/getAllUsers', UserController.getAllUsers);
 

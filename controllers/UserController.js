@@ -165,7 +165,7 @@ exports.createUser = async (req, res) => {
                     _id: updatedProfile?.batchId,
                 },
                 {
-                    $push: {
+                    $addToSet: {
                         batchTeacher: updatedProfile?._id,
                     },
                 }
@@ -177,7 +177,7 @@ exports.createUser = async (req, res) => {
                     _id: updatedProfile?.batchId,
                 },
                 {
-                    $push: {
+                    $addToSet: {
                         batchStudent: updatedProfile?._id,
                     },
                 }
@@ -196,6 +196,46 @@ exports.getAllUsers = async (req, res) => {
     try {
         const users = await User.find().populate('batchId');
         res.status(200).json({ success: true, data: users });
+    } catch (error) {
+        res.status(500).json({ success: false, error: error.message });
+    }
+};
+
+// Get all users
+exports.addExisting = async (req, res) => {
+    try {
+        const { user, batchId } = req.body;
+        let added = null;
+        if (user?.role === "Teacher") {
+            added = await Batch.findOneAndUpdate(
+                {
+                    _id: batchId,
+                },
+                {
+                    $addToSet: {
+                        batchTeacher: user?._id,
+                    },
+                }
+            );
+        }
+        if (user.role === "Student") {
+            added = await Batch.findOneAndUpdate(
+                {
+                    _id: batchId,
+                },
+                {
+                    $addToSet: {
+                        batchStudent: user?._id,
+                    },
+                }
+            );
+        }
+        if (added) {
+            res.status(200).json({ success: true, data: added });
+        }
+        else {
+            res.status(400).json({ success: false, data: null });
+        }
     } catch (error) {
         res.status(500).json({ success: false, error: error.message });
     }
