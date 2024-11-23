@@ -96,8 +96,8 @@ exports.createUser = async (req, res) => {
         let s3Url = user.image;
 
         // Handle file upload if a new file is provided
-        if (req.files && req.files.length > 0) {
-            const file = req.files[0]; // Only one file expected
+        if (req.files) {
+            const file = req.files ? req.files['files'] : null;
             const folderName = "ata/profiles"; // S3 folder
             const fileName = `${user._id}_${Date.now()}_${path.basename(file.path)}`;
             const filePath = path.isAbsolute(file.path)
@@ -143,6 +143,7 @@ exports.createUser = async (req, res) => {
                         }
                     );
                 });
+                console.log("======>", s3Url);
             } catch (error) {
                 console.error("File handling error:", error);
                 return res.status(500).json({ success: false, error: "File upload failed" });
@@ -244,9 +245,6 @@ exports.updateUser = async (req, res) => {
             return res.status(404).json({ success: false, error: "User not found" });
         }
 
-        // Extract files and other fields from request
-        const { files } = req.body;
-
         // Parse the arrays from string to actual arrays
         const parsedBody = {
             name: req.body.name,
@@ -261,8 +259,9 @@ exports.updateUser = async (req, res) => {
         let s3Url = user.image;
 
         // Handle file upload if a new file is provided
-        if (req.files && req.files.length > 0) {
-            const file = req.files[0]; // Only one file expected
+        if (req.files) {
+            const file = req.files ? req.files['files'][0] : null; // Only one file expected
+            console.log(file);
             const folderName = "ata/profiles"; // S3 folder
             const fileName = `${user._id}_${Date.now()}_${path.basename(file.path)}`;
             const filePath = path.isAbsolute(file.path)

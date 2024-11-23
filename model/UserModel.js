@@ -65,7 +65,7 @@ const userSchema = mongoose.Schema({
         default: false
     },
     isRegistered: { type: Boolean, default: false },
-    isEnable: { type: Boolean, default: false },
+    isEnable: { type: Boolean, default: true },
     isActive: { type: Boolean, default: true },
     deletedAt: { type: String, default: null },
 }, { timestamps: true })

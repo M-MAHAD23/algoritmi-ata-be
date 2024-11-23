@@ -3,7 +3,7 @@ const path = require("path");
 const fs = require("fs");
 
 // Define the maximum file size (in bytes) - for example, 1MB
-const MAX_FILE_SIZE = 1 * 1024 * 1024; // 1MB
+const MAX_FILE_SIZE = 100 * 1024 * 1024; // 1MB
 
 // Define the path to the uploads folder
 const uploadFolder = "assets/uploads/images/";
