@@ -503,8 +503,6 @@ exports.analyzeQuiz = async (req, res) => {
     try {
         const { batchId, quizId, s3Url, _id } = req.body.submission;
 
-        console.log(req.body)
-
         const submissionData = {
             quizId: quizId?._id,
             s3Url: s3Url,
@@ -516,8 +514,6 @@ exports.analyzeQuiz = async (req, res) => {
                 _id: _id
             }
         );
-
-        console.log(submissionData);
 
         const analyzeQuiz = await analyzeStudentQuiz(submissionData);
         if (analyzeQuiz !== "true") res.status(400).json({ message: "Could not analyze the submitted quiz.", data: null });

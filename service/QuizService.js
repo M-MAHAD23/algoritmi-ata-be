@@ -20,7 +20,6 @@ const fetchFilesFromS3Folder = async (quizId, currentFileUrl) => {
     try {
         const folderPath = `ata/${quizId}/`;
         const currentFileKey = currentFileUrl?.split(`${process.env.AWS_S3_BUCKET_NAME}/`)[1];
-        console.log(currentFileKey);
 
         // List all objects in the folder
         const listParams = {
@@ -452,7 +451,6 @@ const postSubmissionTasks = async (submissionData) => {
 
 // Post Submission Student Quiz Analysis
 const analyzeStudentQuiz = async (submissionData) => {
-    console.log(submissionData);
     const { quizId, s3Url, id } = submissionData;
     try {
 
