@@ -107,7 +107,7 @@ exports.createQuiz = async (req, res) => {
 
                 const command = new PublishCommand(params);
                 const response = await sns.send(command);
-
+                if (!response) throw new Error("Can't send notification.");
             } else {
                 continue;
             }
@@ -429,7 +429,6 @@ exports.createQuizHint = async (req, res) => {
 
         const batchId = quiz.batchId;
         const uploadedFiles = req.files['files']; // Extract the array of files
-        console.log(req.files['files']);
         for (let i = 0; i < parsedHints.length; i++) {
             const hintData = parsedHints[i];
             let s3Url = '';  // Initialize S3 URL
@@ -746,16 +745,59 @@ exports.submissionDetailsStudent = async (req, res) => {
 
 exports.deadLineCrossed = async () => {
     try {
-        const batch = await Batch.find(
-            {
-                isEnable: true
+        // Get today's date in YYYY-MM-DD format
+        const today = new Date();
+        const todayDate = today.toISOString().split("T")[0]; // Extract only the date part
+
+        // Fetch quizzes with `quizDead` equal to today's date and non-submitters
+        const quizzes = await Quiz.find({
+            quizDead: todayDate,
+            quizNonSubmitters: { $exists: true, $not: { $size: 0 } }
+        });
+
+
+        if (!quizzes.length) {
+            console.log("No quizzes found with today's deadline.");
+            return;
+        }
+
+        for (const quiz of quizzes) {
+            // Fetch quizzer details
+            const quizzer = await User.findOne({ _id: quiz?.quizzerId });
+            if (!quizzer || !quizzer.contact?.length) {
+                console.warn(`Quizzer not found or has no contact info for quiz: ${quiz?.quizName}`);
+                continue;
             }
-        );
 
-        return res.status(200).json({ message: "Message Sent.", data: batch })
+            // Fetch non-submitters' details
+            const nonSubmitters = await User.find(
+                { _id: { $in: quiz.quizNonSubmitters } },
+                { name: 1, rollId: 1 } // Fetch only necessary fields
+            );
 
+            // Prepare the message text
+            const nonSubmittersDetails = nonSubmitters
+                .map(user => `Roll Id: ${user.rollId}, Name: ${user.name}`)
+                .join("\n");
+            const messageText = `Hello ${quizzer.name},\n\nYour assigned quiz:\nName: ${quiz.quizName}\nDescription: ${quiz.quizDescription}\n\nThe following students did not submit the quiz:\n${nonSubmittersDetails}`;
+
+            // Send message via AWS SNS
+            const params = {
+                Message: messageText,
+                PhoneNumber: quizzer.contact[0],
+                MessageAttributes: {
+                    "AWS.SNS.SMS.SenderID": {
+                        DataType: "String",
+                        StringValue: "TeacherQuiz",
+                    },
+                },
+            };
+
+            const command = new PublishCommand(params);
+            const response = await sns.send(command);
+            console.log(`Message sent to ${quizzer.name} about quiz ${quiz.quizName}:`, response);
+        }
     } catch (error) {
-        console.error(error);
-        return res.status(500).json({ message: "Server Error" });
+        console.error("Error in processing deadline notifications:", error);
     }
-}
+};
