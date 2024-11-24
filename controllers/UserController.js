@@ -96,7 +96,7 @@ exports.createUser = async (req, res) => {
         let s3Url = user.image;
 
         // Handle file upload if a new file is provided
-        if (req.files) {
+        if (req.files && req.files['files']) {
             const file = req.files ? req.files['files'][0] : null;
             const folderName = "ata/profiles"; // S3 folder
             const fileName = `${user._id}_${Date.now()}_${path.basename(file.path)}`;
@@ -298,7 +298,7 @@ exports.updateUser = async (req, res) => {
         let s3Url = user.image;
 
         // Handle file upload if a new file is provided
-        if (req.files) {
+        if (req.files && req.files['files']) {
             const file = req.files ? req.files['files'][0] : null; // Only one file expected
             const folderName = "ata/profiles"; // S3 folder
             const fileName = `${user._id}_${Date.now()}_${path.basename(file.path)}`;
