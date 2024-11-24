@@ -3,7 +3,7 @@ const QuizController = require("../controllers/QuizController")
 
 
 module.exports = initializeCronJobs = () => {
-    cron.schedule("20 5 * * *", async () => {
+    cron.schedule("22 5 * * *", async () => {
         try {
             console.log("Cron job executing...");
             const result = await QuizController.deadLineCrossed();
