@@ -31,9 +31,6 @@ if (NODE_ENV == 'production') {
   })
 }
 
-// TODO: Cron
-initializeCronJobs();
-
 //TODO: Test the Server
 app.get('/', (req, res) => {
   res.send('Hello World');
@@ -47,6 +44,9 @@ mongoose.connect(MONGO_URI)
     // Start the server
     app.listen(PORT, () => {
       console.log(`Server is running on port ${PORT}`);
+      // Initialize cron jobs after the server starts
+      console.log("Cron jobs initialized.");
+      initializeCronJobs();
     });
   })
   .catch((err) => {
