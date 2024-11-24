@@ -12,7 +12,10 @@ exports.createBatch = async (req, res) => {
         const batches = await Batch.find()
             .populate('batchTeacher')
             .populate('batchStudent')
-            .populate('batchQuiz');
+            .populate({
+                path: 'batchQuiz',
+                match: { isActive: true },
+            });
         res.status(201).json({ success: true, data: batches });
     } catch (error) {
         res.status(400).json({ success: false, error: error.message });
@@ -29,13 +32,19 @@ exports.getAllBatches = async (req, res) => {
             batches = await Batch.find({ batchTeacher: { $in: [userId] } })
                 .populate("batchTeacher")
                 .populate("batchStudent")
-                .populate("batchQuiz");
+                .populate({
+                    path: 'batchQuiz',
+                    match: { isActive: true },
+                });
         }
         else {
             batches = await Batch.find()
                 .populate('batchTeacher')
                 .populate('batchStudent')
-                .populate('batchQuiz');
+                .populate({
+                    path: 'batchQuiz',
+                    match: { isActive: true },
+                });
         }
 
         res.status(200).json({ success: true, data: batches });
@@ -75,7 +84,10 @@ exports.updateBatch = async (req, res) => {
         const batches = await Batch.find()
             .populate('batchTeacher')
             .populate('batchStudent')
-            .populate('batchQuiz');
+            .populate({
+                path: 'batchQuiz',
+                match: { isActive: true },
+            });
         if (!batch) {
             return res.status(404).json({ success: false, message: 'Batch not found' });
         }
@@ -95,7 +107,10 @@ exports.deleteBatch = async (req, res) => {
         const batches = await Batch.find()
             .populate('batchTeacher')
             .populate('batchStudent')
-            .populate('batchQuiz');
+            .populate({
+                path: 'batchQuiz',
+                match: { isActive: true },
+            });
         res.status(200).json({ success: true, data: batches, message: 'Batch deleted successfully' });
     } catch (error) {
         res.status(400).json({ success: false, error: error.message });
@@ -147,7 +162,10 @@ exports.toggleBatchStatus = async (req, res) => {
         const batches = await Batch.find()
             .populate('batchTeacher')
             .populate('batchStudent')
-            .populate('batchQuiz');
+            .populate({
+                path: 'batchQuiz',
+                match: { isActive: true },
+            });
 
         res.status(200).json({ success: true, data: batches });
 
