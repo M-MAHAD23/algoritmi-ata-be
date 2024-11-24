@@ -9,6 +9,8 @@ const { QuizSubmitter } = require("../model/QuizSubmitterModel");
 const { AWS_S3_ACCESS_KEY, AWS_S3_SECRET_ACCESS_KEY, AWS_REGION, AWS_S3_BUCKET_NAME, OPEN_AI_URL, OPEN_AI_KEY } = require("../config/env");
 const { postSubmissionTasks, analyzeStudentQuiz } = require("../service/QuizService");
 const { Notification } = require("../model/NotificationModel");
+const User = require("../model/UserModel");
+const { SNSClient, PublishCommand } = require("@aws-sdk/client-sns");
 
 // Setup AWS S3
 const s3 = new AWS.S3({
@@ -16,6 +18,23 @@ const s3 = new AWS.S3({
     secretAccessKey: AWS_S3_SECRET_ACCESS_KEY,
     region: AWS_REGION,
 });
+
+
+const sns = new SNSClient({
+    region: process.env.AWS_SNS_REGION, // AWS region from environment variables
+    credentials: {
+        accessKeyId: process.env.AWS_SNS_ACCESS_KEY, // AWS access key from environment variables
+        secretAccessKey: process.env.AWS_SNS_SECRET_KEY, // AWS secret key from environment variables
+    },
+});
+
+const SES_CONFIG = {
+    region: process.env.AWS_SES_REGION,
+    credentials: {
+        accessKeyId: process.env.AWS_ACCESS_KEY,
+        secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
+    },
+};
 
 // Create a new quiz
 exports.createQuiz = async (req, res) => {
@@ -57,6 +76,42 @@ exports.createQuiz = async (req, res) => {
                     ]
                 }
             ]);
+
+        const quizNonSubmitters = newQuiz?.quizNonSubmitters
+
+        const messageText = `Your teacher issued a quiz:
+            Name: ${newQuiz?.quizName},
+            Description: ${newQuiz?.quizDescription},
+            Please submit it as soon as possible.`;
+
+        // Fetch details of non-submitters
+        const nonSubmittersDetails = await User.find(
+            { _id: { $in: quizNonSubmitters } },
+            { name: 1, contact: 1 } // Fetch only relevant fields
+        );
+
+        for (const user of nonSubmittersDetails) {
+            // Ensure the user has at least one contact number
+            if (user?.contact?.length > 0) {
+                const params = {
+                    Message: `Hello ${user?.name},
+                    ${messageText}`,
+                    PhoneNumber: user?.contact[0],
+                    MessageAttributes: {
+                        "AWS.SNS.SMS.SenderID": {
+                            DataType: "String",
+                            StringValue: "TeacherQuiz",
+                        },
+                    },
+                };
+
+                const command = new PublishCommand(params);
+                const response = await sns.send(command);
+
+            } else {
+                continue;
+            }
+        }
 
         return res.status(201).json({ message: "Quiz created successfully", data: quizes });
     } catch (error) {
@@ -306,6 +361,48 @@ exports.submitQuiz = async (req, res) => {
             { _id: quizId },
             { $pull: { quizNonSubmitters: submitterId } }
         );
+
+        const quiz = await Quiz.findOne(
+            {
+                _id: quizId,
+            }
+        );
+
+        const quizzed = await User.findOne(
+            {
+                _id: newQuizSubmitter?.submitterId
+            }
+        );
+
+        const quizzer = await User.findOne(
+            {
+                _id: quiz?.quizzerId
+            }
+        );
+
+        if (quizzer.contact.length > 0) {
+            const params = {
+                Message: `Hey Mr. ${quizzer?.name} just a quick update,
+                Your student:
+                    Roll Id: ${quizzed?.rollId},
+                    Name ${quizzed?.name},
+                    Submitted your assigned quiz:
+                        Name: ${quiz?.quizName}
+                        Description: ${quiz?.quizDescription}
+                        `,
+                PhoneNumber: quizzer?.contact[0],
+                MessageAttributes: {
+                    "AWS.SNS.SMS.SenderID": {
+                        DataType: "String",
+                        StringValue: "StudentQuiz",
+                    },
+                },
+            };
+
+            const command = new PublishCommand(params);
+            const message = await sns.send(command);
+            if (!message) throw new Error("OTP Failed!");
+        }
 
         res.status(201).json({ message: 'Quiz submitted successfully', newQuizSubmitter });
         // Call function after response
