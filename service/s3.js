@@ -5,7 +5,7 @@ const { AWS_S3_ACCESS_KEY, AWS_S3_SECRET_ACCESS_KEY, AWS_S3_REGION, AWS_S3_BUCKE
 const s3 = new AWS.S3({
     accessKeyId: AWS_S3_ACCESS_KEY,
     secretAccessKey: AWS_S3_SECRET_ACCESS_KEY,
-    region: AWS_S3_REGION,
+    region: "us-east-1",
 });
 
 // Function to upload the file to S3

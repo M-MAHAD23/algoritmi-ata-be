@@ -18,7 +18,7 @@ sharp.cache({ files: 0 }); // Disable file caching
 const s3 = new AWS.S3({
     accessKeyId: AWS_S3_ACCESS_KEY,
     secretAccessKey: AWS_S3_SECRET_ACCESS_KEY,
-    region: AWS_S3_REGION,
+    region: "us-east-1",
 });
 
 exports.getStudent__controller = async (req, res, next) => {

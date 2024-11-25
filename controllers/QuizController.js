@@ -16,12 +16,12 @@ const { SNSClient, PublishCommand } = require("@aws-sdk/client-sns");
 const s3 = new AWS.S3({
     accessKeyId: AWS_S3_ACCESS_KEY,
     secretAccessKey: AWS_S3_SECRET_ACCESS_KEY,
-    region: AWS_S3_REGION,
+    region: "us-east-1",
 });
 
 
 const sns = new SNSClient({
-    region: AWS_SNS_REGION, // AWS region from environment variables
+    region: "us-east-2", // AWS region from environment variables
     credentials: {
         accessKeyId: AWS_SNS_ACCESS_KEY, // AWS access key from environment variables
         secretAccessKey: AWS_SNS_SECRET_KEY, // AWS secret key from environment variables
