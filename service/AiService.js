@@ -162,31 +162,31 @@ exports.prompt = async (chatArray, entity) => {
         }
 
         // Send request to AI
-        // const response = await fetch(OPEN_AI_URL, {
-        //     method: "POST",
-        //     headers: {
-        //         "Content-Type": "application/json",
-        //         Authorization: `Bearer ${OPEN_AI_KEY}`
-        //     },
-        //     body: JSON.stringify({
-        //         model: "gpt-4o-mini",
-        //         messages: [
-        //             { role: "system", content: SYSTEM_MESSAGES },
-        //             { role: "user", content: userMessage }
-        //         ],
-        //         temperature: 0,
-        //         max_tokens: 2048,
-        //         top_p: 1,
-        //         frequency_penalty: 0,
-        //         presence_penalty: 0
-        //     })
-        // });
+        const response = await fetch(OPEN_AI_URL, {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                Authorization: `Bearer ${OPEN_AI_KEY}`
+            },
+            body: JSON.stringify({
+                model: "gpt-4o-mini",
+                messages: [
+                    { role: "system", content: SYSTEM_MESSAGES },
+                    { role: "user", content: userMessage }
+                ],
+                temperature: 0,
+                max_tokens: 2048,
+                top_p: 1,
+                frequency_penalty: 0,
+                presence_penalty: 0
+            })
+        });
 
-        // const data = await response.json();
+        const data = await response.json();
 
         // Add the AI's response to the chat array
-        // const aiMessage = data.choices[0].message.content;
-        chat.push({ role: "Model", message: "No" });
+        const aiMessage = data.choices[0].message.content;
+        chat.push({ role: "Model", message: aiMessage });
 
         // Return the updated chat array
         return chat;
