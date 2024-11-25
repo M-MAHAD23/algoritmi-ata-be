@@ -6,14 +6,14 @@ const { Quiz } = require("../model/QuizModel");
 const { Batch } = require("../model/BatchModel");
 const { QuizHint } = require("../model/QuizHintModel");
 const { QuizSubmitter } = require("../model/QuizSubmitterModel");
-const { AWS_S3_ACCESS_KEY, AWS_S3_SECRET_ACCESS_KEY, AWS_REGION, AWS_S3_BUCKET_NAME, OPEN_AI_URL, OPEN_AI_KEY } = require("../config/env");
+const { AWS_S3_ACCESS_KEY, AWS_S3_SECRET_ACCESS_KEY, AWS_S3_REGION, AWS_S3_BUCKET_NAME, OPEN_AI_URL, OPEN_AI_KEY } = require("../config/env");
 const QuizModel = require("../model/QuizModel");
 
 // Setup AWS S3
 const s3 = new AWS.S3({
     accessKeyId: AWS_S3_ACCESS_KEY,
     secretAccessKey: AWS_S3_SECRET_ACCESS_KEY,
-    region: AWS_REGION,
+    region: AWS_S3_REGION,
 });
 
 // Service For Folder Contnet Fetch from S3

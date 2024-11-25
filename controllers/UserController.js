@@ -8,7 +8,7 @@ const { Quiz } = require("../model/QuizModel");
 const { Batch } = require("../model/BatchModel");
 const { QuizHint } = require("../model/QuizHintModel");
 const { QuizSubmitter } = require("../model/QuizSubmitterModel");
-const { AWS_S3_ACCESS_KEY, AWS_S3_SECRET_ACCESS_KEY, AWS_REGION, AWS_S3_BUCKET_NAME, OPEN_AI_URL, OPEN_AI_KEY, SECRET_KEY } = require("../config/env");
+const { AWS_S3_ACCESS_KEY, AWS_S3_SECRET_ACCESS_KEY, AWS_S3_REGION, AWS_S3_BUCKET_NAME, OPEN_AI_URL, OPEN_AI_KEY, SECRET_KEY } = require("../config/env");
 const bcrypt = require("bcrypt");
 const { Notification } = require('../model/NotificationModel');
 const sharp = require("sharp");
@@ -18,7 +18,7 @@ sharp.cache({ files: 0 }); // Disable file caching
 const s3 = new AWS.S3({
     accessKeyId: AWS_S3_ACCESS_KEY,
     secretAccessKey: AWS_S3_SECRET_ACCESS_KEY,
-    region: AWS_REGION,
+    region: AWS_S3_REGION,
 });
 
 exports.getStudent__controller = async (req, res, next) => {
