@@ -29,6 +29,10 @@ router.post("/deleteQuiz", QuizController.deleteQuiz);
 // Route to Submit a Quiz
 router.post("/submitQuiz", uploadCode, QuizController.submitQuiz);
 
+// Route to get a submitQuizNotify 
+router.post("/submitQuizNotify", uploadCode, QuizController.submitQuizNotify);
+
+
 // Route to create a new QuizHint
 router.post("/createQuizHint", uploadFiles, QuizController.createQuizHint);
 

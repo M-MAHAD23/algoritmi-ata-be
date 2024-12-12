@@ -405,6 +405,124 @@ exports.submitQuiz = async (req, res) => {
     }
 };
 
+exports.submitQuizNotify = async (req, res) => {
+    try {
+        const { batchId, submitterId, quizId, submitDate } = req.body;
+
+        const quizAlreadySubmitted = await QuizSubmitter.findOne(
+            {
+                submitterId: submitterId,
+                quizId: quizId,
+            }
+        );
+
+        if (quizAlreadySubmitted) return res.status(409).json({ message: "Quiz already submitted.", data: null });
+
+        let s3Url = '';
+
+        // Handle file upload
+        if (req.files && req.files.length > 0) {
+            const file = req.files[0]; // Only one file expected
+            const folderName = `ata/${quizId}`; // Folder path on S3
+            const fileName = `${submitterId}`; // Using timestamp for unique name
+            const filePath = path.isAbsolute(file.path) ? file.path : path.join(__dirname, "../assets/uploads/images", path.basename(file.path));
+
+            // Upload file to S3
+            s3Url = await new Promise((resolve, reject) => {
+                s3.upload(
+                    {
+                        Bucket: process.env.AWS_S3_BUCKET_NAME,
+                        Key: `${folderName}/${fileName}`,
+                        Body: fs.createReadStream(filePath),
+                        ContentType: 'text/plain',
+                    },
+                    (err, data) => {
+                        fs.unlinkSync(filePath); // Delete the local file after upload
+                        if (err) return reject(err);
+                        resolve(data.Location); // S3 file URL
+                    }
+                );
+            });
+        }
+
+        // Create QuizSubmitter document
+        const newQuizSubmitter = new QuizSubmitter({
+            batchId,
+            submitterId,
+            quizId,
+            s3Url,
+            submitDate,
+        });
+        await newQuizSubmitter.save();
+
+        await Quiz.updateOne(
+            { _id: quizId },
+            {
+                $addToSet: {
+                    quizSubmitters: {
+                        studentId: submitterId,
+                        submissionId: newQuizSubmitter._id,
+                    }
+                }
+            }
+        );
+
+        await Quiz.updateOne(
+            { _id: quizId },
+            { $pull: { quizNonSubmitters: submitterId } }
+        );
+
+        const quiz = await Quiz.findOne(
+            {
+                _id: quizId,
+            }
+        );
+
+        const quizzed = await User.findOne(
+            {
+                _id: newQuizSubmitter?.submitterId
+            }
+        );
+
+        const quizzer = await User.findOne(
+            {
+                _id: quiz?.quizzerId
+            }
+        );
+
+        if (quizzer.contact.length > 0) {
+            const params = {
+                Message: `Hey Mr. ${quizzer?.name} just a quick update,
+                Your student:
+                    Roll Id: ${quizzed?.rollId},
+                    Name ${quizzed?.name},
+                    Submitted your assigned quiz:
+                        Name: ${quiz?.quizName}
+                        Description: ${quiz?.quizDescription}
+                        `,
+                PhoneNumber: quizzer?.contact[0],
+                MessageAttributes: {
+                    "AWS.SNS.SMS.SenderID": {
+                        DataType: "String",
+                        StringValue: "StudentQuiz",
+                    },
+                },
+            };
+
+            const command = new PublishCommand(params);
+            const message = await sns.send(command);
+            if (!message) throw new Error("OTP Failed!");
+        }
+
+        res.status(201).json({ message: 'Quiz submitted successfully', newQuizSubmitter });
+        // Call function after response
+        // await postSubmissionTasks(newQuizSubmitter);
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ message: 'Server Error' });
+    }
+};
+
 // Create Quiz Hint
 exports.createQuizHint = async (req, res) => {
     try {
