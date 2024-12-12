@@ -286,6 +286,187 @@ exports.deleteQuiz = async (req, res) => {
     }
 };
 
+// Create Quiz Hint
+exports.createQuizHint = async (req, res) => {
+    try {
+        const { quizId, quizHints } = req.body; // quizHints will be an array
+
+        // Parse the quizHints if it's still a string
+        const parsedHints = Array.isArray(quizHints) ? quizHints : JSON.parse(quizHints);
+
+        const quiz = await Quiz.findOne({ _id: quizId });
+
+        if (!quiz) {
+            return res.status(404).json({ message: "Quiz not found" });
+        }
+
+        const batchId = quiz.batchId;
+        const uploadedFiles = req.files['files']; // Extract the array of files
+        for (let i = 0; i < parsedHints.length; i++) {
+            const hintData = parsedHints[i];
+            let s3Url = '';  // Initialize S3 URL
+
+            // Map file to hint based on the index
+            if (uploadedFiles && uploadedFiles[i]) {
+                const file = uploadedFiles[i];
+
+                // Upload to S3 (as you currently do)
+                const fileUploadResult = await new Promise((resolve, reject) => {
+                    s3.upload(
+                        {
+                            Bucket: AWS_S3_BUCKET_NAME,
+                            Key: `ata/${quizId}/hints/${file.filename}`,
+                            Body: fs.createReadStream(file.path),
+                            ContentType: file.mimetype,
+                        },
+                        (err, data) => {
+                            fs.unlinkSync(file.path); // Remove temp file after upload
+                            if (err) return reject(err);
+                            resolve(data.Location);  // Return the S3 URL
+                        }
+                    );
+                });
+
+                s3Url = fileUploadResult;  // Save the S3 URL
+            }
+
+            // Create and save the hint with the S3 URL
+            const newQuizHint = new QuizHint({
+                batchId,
+                quizId,
+                description: hintData.description,
+                hintType: hintData.hintType,
+                s3Url,  // Include the S3 URL
+            });
+
+            await newQuizHint.save();
+        }
+
+        // Respond with the created quiz hints
+        res.status(201).json({ message: "Success" });
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ message: "Error creating quiz hint." });
+    }
+};
+
+// Get Quiz Hint by ID
+exports.getQuizHint = async (req, res) => {
+    try {
+        const quizHint = await QuizHint.findById(req.params.id);
+        if (!quizHint) {
+            return res.status(404).json({ message: "Quiz hint not found." });
+        }
+        res.status(200).json(quizHint);
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ message: "Error fetching quiz hint." });
+    }
+};
+
+// Update Quiz Hint
+exports.updateQuizHint = async (req, res) => {
+    try {
+        const { quizHintId, description, hintType } = req.body;
+        let s3Url = ""; // New s3Url to update
+
+        // Find the existing QuizHint by ID
+        const quizHint = await QuizHint.findById(quizHintId);
+        if (!quizHint) {
+            return res.status(404).json({ message: "Quiz hint not found." });
+        }
+
+        // Handle file upload if a new file is provided
+        if (req.files && req.files[0]) {
+            const file = req.files[0];
+            const folderName = quizHint.quizId.toString(); // Folder named after quizId
+            const fileName = path.basename(file.path); // Using timestamp for unique name
+            const filePath = path.isAbsolute(file.path) ? file.path : path.join(__dirname, "../assets/uploads/images", path.basename(file.path)); // Path of the temporary file
+
+            // Delete the old file from S3 if it exists
+            if (quizHint.s3Url) {
+                const oldFileName = quizHint.s3Url.split("/").pop(); // Get the file name from the URL
+                const deleteParams = {
+                    Bucket: AWS_S3_BUCKET_NAME,
+                    Key: `ata/${folderName}/${oldFileName}`, // Delete file in the same folder
+                };
+                await s3.deleteObject(deleteParams).promise(); // Remove the old file from S3
+            }
+
+            // Upload the new file to S3
+            const fileUploadResult = await new Promise((resolve, reject) => {
+                s3.upload(
+                    {
+                        Bucket: AWS_S3_BUCKET_NAME,
+                        Key: `ata/${folderName}/${fileName}`, // Upload file under the quizId folder
+                        Body: fs.createReadStream(filePath),
+                        ContentType: file.mimetype,
+                    },
+                    (err, data) => {
+                        fs.unlinkSync(filePath); // Remove temp file after upload
+                        if (err) return reject(err);
+                        resolve(data.Location); // S3 URL of the file
+                    }
+                );
+            });
+
+            // Set the new S3 URL after successful upload
+            s3Url = fileUploadResult;
+        } else {
+            // If no new file is uploaded, retain the old s3Url
+            s3Url = quizHint.s3Url;
+        }
+
+        // Update the QuizHint with the new details
+        quizHint.description = description || quizHint.description;
+        quizHint.hintType = hintType || quizHint.hintType;
+        quizHint.s3Url = s3Url; // Update the s3Url (new or old)
+
+        // Save the updated QuizHint
+        await quizHint.save();
+
+        // Respond with the updated QuizHint
+        res.status(200).json(quizHint);
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ message: "Error updating quiz hint." });
+    }
+};
+
+// Delete Quiz Hint
+exports.deleteQuizHint = async (req, res) => {
+    try {
+        const quizHint = await QuizHint.findById(req.body.id);
+        if (!quizHint) {
+            return res.status(404).json({ message: "Quiz hint not found." });
+        }
+
+        // Delete the old file from S3 if it exists
+        if (quizHint.s3Url) {
+            const oldFileName = quizHint.s3Url.split("/").pop(); // Get the file name from the URL
+            const deleteParams = {
+                Bucket: AWS_S3_BUCKET_NAME,
+                Key: `ata/${folderName}/${oldFileName}`, // Delete file in the same folder
+            };
+            await s3.deleteObject(deleteParams).promise(); // Remove the old file from S3
+        }
+
+        await Quiz.updateOne(
+            { _id: quizHint.quizId },
+            { $pull: { quizHint: req.body.id } }
+        );
+
+        await QuizHint.findByIdAndDelete(req.body.id);
+
+        // Delete quiz hint
+        await quizHint.deleteOne();
+        res.status(200).json({ message: "Quiz hint deleted successfully." });
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ message: "Error deleting quiz hint." });
+    }
+};
+
 // Soft submitQuiz a quiz
 exports.submitQuiz = async (req, res) => {
     try {
@@ -520,187 +701,6 @@ exports.submitQuizNotify = async (req, res) => {
     } catch (error) {
         console.error(error);
         res.status(500).json({ message: 'Server Error' });
-    }
-};
-
-// Create Quiz Hint
-exports.createQuizHint = async (req, res) => {
-    try {
-        const { quizId, quizHints } = req.body; // quizHints will be an array
-
-        // Parse the quizHints if it's still a string
-        const parsedHints = Array.isArray(quizHints) ? quizHints : JSON.parse(quizHints);
-
-        const quiz = await Quiz.findOne({ _id: quizId });
-
-        if (!quiz) {
-            return res.status(404).json({ message: "Quiz not found" });
-        }
-
-        const batchId = quiz.batchId;
-        const uploadedFiles = req.files['files']; // Extract the array of files
-        for (let i = 0; i < parsedHints.length; i++) {
-            const hintData = parsedHints[i];
-            let s3Url = '';  // Initialize S3 URL
-
-            // Map file to hint based on the index
-            if (uploadedFiles && uploadedFiles[i]) {
-                const file = uploadedFiles[i];
-
-                // Upload to S3 (as you currently do)
-                const fileUploadResult = await new Promise((resolve, reject) => {
-                    s3.upload(
-                        {
-                            Bucket: AWS_S3_BUCKET_NAME,
-                            Key: `ata/${quizId}/hints/${file.filename}`,
-                            Body: fs.createReadStream(file.path),
-                            ContentType: file.mimetype,
-                        },
-                        (err, data) => {
-                            fs.unlinkSync(file.path); // Remove temp file after upload
-                            if (err) return reject(err);
-                            resolve(data.Location);  // Return the S3 URL
-                        }
-                    );
-                });
-
-                s3Url = fileUploadResult;  // Save the S3 URL
-            }
-
-            // Create and save the hint with the S3 URL
-            const newQuizHint = new QuizHint({
-                batchId,
-                quizId,
-                description: hintData.description,
-                hintType: hintData.hintType,
-                s3Url,  // Include the S3 URL
-            });
-
-            await newQuizHint.save();
-        }
-
-        // Respond with the created quiz hints
-        res.status(201).json({ message: "Success" });
-    } catch (error) {
-        console.error(error);
-        res.status(500).json({ message: "Error creating quiz hint." });
-    }
-};
-
-// Get Quiz Hint by ID
-exports.getQuizHint = async (req, res) => {
-    try {
-        const quizHint = await QuizHint.findById(req.params.id);
-        if (!quizHint) {
-            return res.status(404).json({ message: "Quiz hint not found." });
-        }
-        res.status(200).json(quizHint);
-    } catch (error) {
-        console.error(error);
-        res.status(500).json({ message: "Error fetching quiz hint." });
-    }
-};
-
-// Update Quiz Hint
-exports.updateQuizHint = async (req, res) => {
-    try {
-        const { quizHintId, description, hintType } = req.body;
-        let s3Url = ""; // New s3Url to update
-
-        // Find the existing QuizHint by ID
-        const quizHint = await QuizHint.findById(quizHintId);
-        if (!quizHint) {
-            return res.status(404).json({ message: "Quiz hint not found." });
-        }
-
-        // Handle file upload if a new file is provided
-        if (req.files && req.files[0]) {
-            const file = req.files[0];
-            const folderName = quizHint.quizId.toString(); // Folder named after quizId
-            const fileName = path.basename(file.path); // Using timestamp for unique name
-            const filePath = path.isAbsolute(file.path) ? file.path : path.join(__dirname, "../assets/uploads/images", path.basename(file.path)); // Path of the temporary file
-
-            // Delete the old file from S3 if it exists
-            if (quizHint.s3Url) {
-                const oldFileName = quizHint.s3Url.split("/").pop(); // Get the file name from the URL
-                const deleteParams = {
-                    Bucket: AWS_S3_BUCKET_NAME,
-                    Key: `ata/${folderName}/${oldFileName}`, // Delete file in the same folder
-                };
-                await s3.deleteObject(deleteParams).promise(); // Remove the old file from S3
-            }
-
-            // Upload the new file to S3
-            const fileUploadResult = await new Promise((resolve, reject) => {
-                s3.upload(
-                    {
-                        Bucket: AWS_S3_BUCKET_NAME,
-                        Key: `ata/${folderName}/${fileName}`, // Upload file under the quizId folder
-                        Body: fs.createReadStream(filePath),
-                        ContentType: file.mimetype,
-                    },
-                    (err, data) => {
-                        fs.unlinkSync(filePath); // Remove temp file after upload
-                        if (err) return reject(err);
-                        resolve(data.Location); // S3 URL of the file
-                    }
-                );
-            });
-
-            // Set the new S3 URL after successful upload
-            s3Url = fileUploadResult;
-        } else {
-            // If no new file is uploaded, retain the old s3Url
-            s3Url = quizHint.s3Url;
-        }
-
-        // Update the QuizHint with the new details
-        quizHint.description = description || quizHint.description;
-        quizHint.hintType = hintType || quizHint.hintType;
-        quizHint.s3Url = s3Url; // Update the s3Url (new or old)
-
-        // Save the updated QuizHint
-        await quizHint.save();
-
-        // Respond with the updated QuizHint
-        res.status(200).json(quizHint);
-    } catch (error) {
-        console.error(error);
-        res.status(500).json({ message: "Error updating quiz hint." });
-    }
-};
-
-// Delete Quiz Hint
-exports.deleteQuizHint = async (req, res) => {
-    try {
-        const quizHint = await QuizHint.findById(req.body.id);
-        if (!quizHint) {
-            return res.status(404).json({ message: "Quiz hint not found." });
-        }
-
-        // Delete the old file from S3 if it exists
-        if (quizHint.s3Url) {
-            const oldFileName = quizHint.s3Url.split("/").pop(); // Get the file name from the URL
-            const deleteParams = {
-                Bucket: AWS_S3_BUCKET_NAME,
-                Key: `ata/${folderName}/${oldFileName}`, // Delete file in the same folder
-            };
-            await s3.deleteObject(deleteParams).promise(); // Remove the old file from S3
-        }
-
-        await Quiz.updateOne(
-            { _id: quizHint.quizId },
-            { $pull: { quizHint: req.body.id } }
-        );
-
-        await QuizHint.findByIdAndDelete(req.body.id);
-
-        // Delete quiz hint
-        await quizHint.deleteOne();
-        res.status(200).json({ message: "Quiz hint deleted successfully." });
-    } catch (error) {
-        console.error(error);
-        res.status(500).json({ message: "Error deleting quiz hint." });
     }
 };
 

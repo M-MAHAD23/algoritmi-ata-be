@@ -19,6 +19,18 @@ router.post("/getQuizById", QuizController.getQuizById);
 // Route to get a quiz submissions by ID
 router.post("/getQuizSubmissionsById", QuizController.getQuizSubmissionsById);
 
+// Route to create a new QuizHint
+router.post("/createQuizHint", uploadFiles, QuizController.createQuizHint);
+
+// Route to get a QuizHint by ID
+router.post("/getQuizHint", QuizController.getQuizHint);
+
+// Route to update a QuizHint by ID
+router.post("/updateQuizHint", uploadFiles, QuizController.updateQuizHint);
+
+// Route to delete a QuizHint by ID
+router.post("/deleteQuizHint", QuizController.deleteQuizHint);
+
 
 // Route to update a quiz by ID
 router.post("/updateQuiz", QuizController.updateQuiz);
@@ -31,19 +43,6 @@ router.post("/submitQuiz", uploadCode, QuizController.submitQuiz);
 
 // Route to get a submitQuizNotify 
 router.post("/submitQuizNotify", uploadCode, QuizController.submitQuizNotify);
-
-
-// Route to create a new QuizHint
-router.post("/createQuizHint", uploadFiles, QuizController.createQuizHint);
-
-// Route to get a QuizHint by ID
-router.post("/getQuizHint", QuizController.getQuizHint);
-
-// Route to update a QuizHint by ID
-router.post("/updateQuizHint", uploadFiles, QuizController.updateQuizHint);
-
-// Route to delete a QuizHint by ID
-router.post("/deleteQuizHint", QuizController.deleteQuizHint);
 
 // Route to analyze
 router.post("/analyzeQuiz", QuizController.analyzeQuiz);
